@@ -40,7 +40,7 @@
   /* MAIN TABLE */
   .table-wrapper { overflow-x: auto; }
 
-  .main-table { width: auto; min-width: 100%; border-collapse: collapse; font-size: 9px; table-layout: auto; }
+  .main-table { width: auto; border-collapse: collapse; font-size: 9px; table-layout: fixed; }
   .main-table th, .main-table td { border: 1px solid #aaa; padding: 2px 3px; text-align: center; vertical-align: middle; }
 
   /* Header rows */
@@ -867,8 +867,23 @@ function calcNivel(row) {
 
 // ─── RENDER ────────────────────────────────────────────────────────────────────
 function renderHead() {
-  const head = document.getElementById('tableHead');
-  head.innerHTML = '';
+  // Colgroup con anchos fijos — garantiza que table-layout:fixed los respete
+  let cg = '<colgroup>';
+  cg += '<col style="width:22px;">';   // N°
+  cg += '<col style="width:28px;">';   // UNIDAD
+  cg += '<col style="width:45px;">';   // CÓDIGO
+  cg += '<col style="width:320px;">';  // TAREAS FUNDAMENTALES
+  for (let t = 0; t < tareas.length; t++) {
+    tareas[t].subCols.forEach(() => cg += '<col style="width:26px;">');
+    cg += '<col style="width:32px;">'; // COM.PRED.
+    cg += '<col style="width:26px;">'; // TOT
+  }
+  cg += '<col style="width:70px;">';   // NIVEL DE CONTRIBUCIÓN
+  cg += '<col style="width:80px;">';   // PROCESO SELECCIONADO
+  cg += '</colgroup>';
+  document.getElementById('mainTable').innerHTML = cg + '<thead id="tableHead"></thead><tbody id="tableBody"></tbody>';
+  // Re-apuntar head al nuevo elemento
+  const newHead = document.getElementById('tableHead');
 
   // Row 1: fixed cols + tarea headers
   let r1 = '<tr>';
@@ -906,7 +921,7 @@ function renderHead() {
   }
   r2 += '</tr>';
 
-  head.innerHTML = r1 + r2;
+  newHead.innerHTML = r1 + r2;
 }
 
 function renderBody() {
