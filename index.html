@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <!-- saved from url=(0123)file:///C:/Users/gladi/OneDrive/0%20PROGRA/11%20ANALISIS%20PROEC.RIESGOS/An%C3%A1lisis%20de%20Procesos%20Cr%C3%ADticos.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -225,8 +225,7 @@
 
   <!-- MAIN TABLE -->
   <div class="table-wrapper">
-    <table class="main-table" id="mainTable">
-      <thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;">N°</th><th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="min-width:160px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="10" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
+    <table class="main-table" id="mainTable"><colgroup><col style="width:22px;"><col style="width:28px;"><col style="width:45px;"><col style="width:320px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:32px;"><col style="width:26px;"><col style="width:70px;"><col style="width:80px;"></colgroup><thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;">N°</th><th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="10" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
@@ -256,8 +255,7 @@
       </th><th class="th-sub-num" style="position:relative;">
         <div contenteditable="true" onblur="tareas[0].subCols[7]=this.textContent.trim()||&#39;VIII&#39;" style="outline:none;min-width:10px;">VIII</div>
         
-      </th><th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.<button onclick="delSubCol(0)" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">−</button></th><th class="th-tot">TOT</th></tr></thead>
-      <tbody id="tableBody"><tr><td>1</td><td>I</td><td contenteditable="true" onblur="rows[0].codigo=this.textContent">1.1</td><td class="proceso-name" contenteditable="true" onblur="rows[0].proceso=this.textContent">Gestión General del Departamento</td><td class="score-input">
+      </th><th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.<button onclick="delSubCol(0)" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">−</button></th><th class="th-tot">TOT</th></tr></thead><tbody id="tableBody"><tr><td class="col-n">1</td><td class="col-unidad">I</td><td class="col-codigo" contenteditable="true" onblur="rows[0].codigo=this.textContent">1.1</td><td class="proceso-name" contenteditable="true" onblur="rows[0].proceso=this.textContent">Gestión General del Departamento</td><td class="score-input">
           <select onchange="setScore(0,0,0,this.value)">
             <option value=""></option>
             <option value="0">0</option>
@@ -329,7 +327,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-critico">2</td><td class="nivel-cell" style="border-left:2px solid #375623;">2.0</td><td class="critico-si">ES CRÍTICO</td></tr><tr><td>2</td><td>II</td><td contenteditable="true" onblur="rows[1].codigo=this.textContent">1.2</td><td class="proceso-name" contenteditable="true" onblur="rows[1].proceso=this.textContent">Naturalización de la Inteligencia Básica y actual</td><td class="score-input">
+      </td><td class="tot-critico">2</td><td class="nivel-cell" style="border-left:2px solid #375623;">2.0</td><td class="critico-si">ES CRÍTICO</td></tr><tr><td class="col-n">2</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" onblur="rows[1].codigo=this.textContent">1.2</td><td class="proceso-name" contenteditable="true" onblur="rows[1].proceso=this.textContent">Naturalización de la Inteligencia Básica y actual</td><td class="score-input">
           <select onchange="setScore(1,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -401,7 +399,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td>3</td><td>II</td><td contenteditable="true" onblur="rows[2].codigo=this.textContent">1.3</td><td class="proceso-name" contenteditable="true" onblur="rows[2].proceso=this.textContent">Desarrollo y control de medidas de seguridad militar.</td><td class="score-input">
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td class="col-n">3</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" onblur="rows[2].codigo=this.textContent">1.3</td><td class="proceso-name" contenteditable="true" onblur="rows[2].proceso=this.textContent">Desarrollo y control de medidas de seguridad militar.</td><td class="score-input">
           <select onchange="setScore(2,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -473,7 +471,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td>4</td><td>II</td><td contenteditable="true" onblur="rows[3].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[3].proceso=this.textContent">Control de proceso de clasificación de la información de interés al ES.</td><td class="score-input">
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td class="col-n">4</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" onblur="rows[3].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[3].proceso=this.textContent">Control de proceso de clasificación de la información de interés al ES.</td><td class="score-input">
           <select onchange="setScore(3,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -545,7 +543,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td>5</td><td>III</td><td contenteditable="true" onblur="rows[4].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[4].proceso=this.textContent">Renovar o actualizar iniciativas de alto impacto.</td><td class="score-input">
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td class="col-n">5</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" onblur="rows[4].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[4].proceso=this.textContent">Renovar o actualizar iniciativas de alto impacto.</td><td class="score-input">
           <select onchange="setScore(4,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -617,7 +615,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td>6</td><td>III</td><td contenteditable="true" onblur="rows[5].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[5].proceso=this.textContent">Planificación, coordinación y conducción de las fuerzas que se desprenden a diferentes unidades de misión.</td><td class="score-input">
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td class="col-n">6</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" onblur="rows[5].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[5].proceso=this.textContent">Planificación, coordinación y conducción de las fuerzas que se desprenden a diferentes unidades de misión.</td><td class="score-input">
           <select onchange="setScore(5,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -689,7 +687,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td>7</td><td>III</td><td contenteditable="true" onblur="rows[6].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[6].proceso=this.textContent">Entrega de medios de la VDE, para las operaciones militares distintas a la guerra, u otras de utilidad internacional.</td><td class="score-input">
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr><tr><td class="col-n">7</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" onblur="rows[6].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" onblur="rows[6].proceso=this.textContent">Entrega de medios de la VDE, para las operaciones militares distintas a la guerra, u otras de utilidad internacional.</td><td class="score-input">
           <select onchange="setScore(6,0,0,this.value)">
             <option value="" selected=""></option>
             <option value="0">0</option>
@@ -761,8 +759,7 @@
           <option value="2">2</option>
           <option value="3">3</option>
         </select>
-      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr></tbody>
-    </table>
+      </td><td class="tot-cell"></td><td class="nivel-cell" style="border-left:2px solid #375623;"></td><td class="critico-no"></td></tr></tbody></table>
   </div>
 
 </div>
@@ -1196,10 +1193,20 @@ function imprimirReporte() {
   setTimeout(() => w.print(), 400);
 }
 
+// ─── TECLA SUPRIMIR EN SELECTORES ─────────────────────────────────────────────
+document.addEventListener('keydown', function(e) {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement.tagName === 'SELECT') {
+    e.preventDefault();
+    document.activeElement.value = '';
+    document.activeElement.dispatchEvent(new Event('change'));
+  }
+});
+
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 renderHead();
 renderBody();
 </script>
+
 
 
 </body></html>
