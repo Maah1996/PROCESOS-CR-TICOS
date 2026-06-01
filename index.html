@@ -938,7 +938,7 @@ function renderBody() {
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
         tr += `<td class="score-input">
-          <select onchange="setScore(${ri},${t},${si},this.value)">
+          <select onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
             <option value="" ${val===null?'selected':''}></option>
             <option value="0" ${val===0?'selected':''}>0</option>
             <option value="1" ${val===1?'selected':''}>1</option>
@@ -948,7 +948,7 @@ function renderBody() {
         </td>`;
       });
       tr += `<td class="score-input">
-        <select onchange="setCompred(${ri},${t},this.value)">
+        <select onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
           <option value="" ${cp===null?'selected':''}></option>
           <option value="0" ${cp===0?'selected':''}>0</option>
           <option value="1" ${cp===1?'selected':''}>1</option>
@@ -1194,13 +1194,10 @@ function imprimirReporte() {
 }
 
 // ─── TECLA SUPRIMIR EN SELECTORES ─────────────────────────────────────────────
-document.addEventListener('keydown', function(e) {
-  if ((e.key === 'Delete' || e.key === 'Backspace') && document.activeElement.tagName === 'SELECT') {
-    e.preventDefault();
-    document.activeElement.value = '';
-    document.activeElement.dispatchEvent(new Event('change'));
-  }
-});
+function clearSelect(sel) {
+  sel.value = '';
+  sel.dispatchEvent(new Event('change'));
+}
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 renderHead();
