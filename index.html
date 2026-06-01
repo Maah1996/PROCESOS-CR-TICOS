@@ -925,12 +925,13 @@ function renderBody() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
 
+  let tabIdx = 1;
   rows.forEach((row, ri) => {
     let tr = `<tr>`;
     tr += `<td class="col-n">${row.n}</td>`;
     tr += `<td class="col-unidad">${row.unidad}</td>`;
-    tr += `<td class="col-codigo" contenteditable="true" onblur="rows[${ri}].codigo=this.textContent">${row.codigo}</td>`;
-    tr += `<td class="proceso-name" contenteditable="true" onblur="rows[${ri}].proceso=this.textContent">${row.proceso}</td>`;
+    tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[${ri}].codigo=this.textContent">${row.codigo}</td>`;
+    tr += `<td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[${ri}].proceso=this.textContent">${row.proceso}</td>`;
 
     for(let t=0; t<tareas.length; t++) {
       const cp = row.compredi[t];
@@ -938,7 +939,7 @@ function renderBody() {
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
         tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-          <select onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
+          <select tabindex="${tabIdx++}" onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
             <option value="" ${val===null?'selected':''} style="color:#bbb;">✕</option>
             <option value="0" ${val===0?'selected':''}>0</option>
             <option value="1" ${val===1?'selected':''}>1</option>
@@ -948,7 +949,7 @@ function renderBody() {
         </td>`;
       });
       tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-        <select onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
+        <select tabindex="${tabIdx++}" onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
           <option value="" ${cp===null?'selected':''} style="color:#bbb;">✕</option>
           <option value="0" ${cp===0?'selected':''}>0</option>
           <option value="1" ${cp===1?'selected':''}>1</option>
