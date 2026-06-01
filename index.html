@@ -141,7 +141,7 @@
       <button class="btn btn-del" onclick="delLastRow()">− Eliminar Último</button>
       <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
-      <button class="btn btn-export" onclick="window.print()">🖨 Imprimir / Exportar PDF</button>
+      <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
     </div>
     <div id="summary">
     <div class="summary-card"><div class="val val-total">7</div><div class="lbl">Procesos Totales</div></div>
@@ -10130,6 +10130,79 @@ function toggleDB() {
   const panel = document.getElementById('dbPanel');
   panel.classList.toggle('open');
   if (panel.classList.contains('open')) renderDBList();
+}
+
+// ─── IMPRESIÓN / PDF ───────────────────────────────────────────────────────────
+function imprimirReporte() {
+  const inst    = document.getElementById('h-inst').textContent;
+  const div     = document.getElementById('h-div').textContent;
+  const unidad  = document.getElementById('h-unidad').textContent;
+  const fecha   = document.getElementById('dateBar').textContent;
+  const criticos = rows.filter(r => { const n = calcNivel(r); return n !== null && n >= 1.5; }).length;
+
+  let filas = '';
+  rows.forEach((row, i) => {
+    const nivel = calcNivel(row);
+    const esCritico = nivel !== null && nivel >= 1.5;
+    const nivelStr  = nivel !== null ? nivel.toFixed(1) : '-';
+    const criticoStr = nivel !== null ? (esCritico ? 'ES CRÍTICO' : 'NO ES CRÍTICO') : '-';
+    const critColor  = esCritico ? '#ff0000' : '#c6efce';
+    const critTxt    = esCritico ? 'white' : '#000';
+    filas += `<tr>
+      <td>${row.n}</td>
+      <td>${row.unidad}</td>
+      <td>${row.codigo}</td>
+      <td style="text-align:left;">${row.proceso}</td>
+      <td>${nivelStr}</td>
+      <td style="background:${critColor};color:${critTxt};font-weight:bold;">${criticoStr}</td>
+    </tr>`;
+  });
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Análisis de Procesos Críticos</title>
+  <style>
+    @page { size: 216mm 330mm; margin: 15mm 12mm 15mm 12mm; }
+    body { font-family: Arial, sans-serif; font-size: 9px; margin: 0; }
+    .membrete { margin-bottom: 12px; }
+    .membrete .inst  { font-weight: bold; font-size: 12px; }
+    .membrete .divt  { font-weight: bold; font-size: 11px; }
+    .membrete .unid  { font-size: 10px; }
+    .fecha { text-align: right; font-size: 9px; color: #555; margin-bottom: 8px; }
+    .titulo { text-align: center; font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5px; }
+    th { background: #4472c4; color: white; border: 1px solid #333; padding: 4px 5px; text-align: center; }
+    td { border: 1px solid #aaa; padding: 3px 5px; text-align: center; vertical-align: middle; }
+    td:nth-child(4) { text-align: left; }
+    tr:nth-child(even) td { background: #f5f5f5; }
+    .resumen { margin-top: 12px; font-size: 9px; color: #333; }
+  </style></head><body>
+  <div class="membrete">
+    <div class="inst">${inst}</div>
+    <div class="divt">${div}</div>
+    <div class="unid">${unidad}</div>
+  </div>
+  <div class="fecha">${fecha}</div>
+  <div class="titulo">Análisis de Procesos Críticos</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:25px;">N°</th>
+        <th style="width:35px;">UNIDAD</th>
+        <th style="width:55px;">CÓDIGO INVENTARIO</th>
+        <th>TAREAS FUNDAMENTALES / PROCESOS</th>
+        <th style="width:55px;">NIVEL DE CONTRIBUCIÓN</th>
+        <th style="width:90px;">PROCESO SELECCIONADO (1.5-3 ES CRÍTICO)</th>
+      </tr>
+    </thead>
+    <tbody>${filas}</tbody>
+  </table>
+  <div class="resumen">Total procesos: <strong>${rows.length}</strong> &nbsp;|&nbsp; Procesos críticos: <strong>${criticos}</strong> &nbsp;|&nbsp; % Criticidad: <strong>${rows.length > 0 ? Math.round((criticos/rows.length)*100) : 0}%</strong></div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => w.print(), 400);
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
