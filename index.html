@@ -57,6 +57,9 @@
   /* Data cells */
   td.proceso-name { text-align: left; font-size: 8px; width: 320px; min-width: 320px; max-width: 320px; word-wrap: break-word; white-space: normal; }
   td.num-cell { min-width: 25px; }
+  td.col-n      { width:22px;  min-width:22px;  max-width:22px;  overflow:hidden; }
+  td.col-unidad { width:28px;  min-width:28px;  max-width:28px;  overflow:hidden; font-size:7px; word-break:break-all; }
+  td.col-codigo { width:45px;  min-width:45px;  max-width:45px;  overflow:hidden; font-size:7px; word-break:break-all; }
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
@@ -912,9 +915,9 @@ function renderBody() {
 
   rows.forEach((row, ri) => {
     let tr = `<tr>`;
-    tr += `<td>${row.n}</td>`;
-    tr += `<td>${row.unidad}</td>`;
-    tr += `<td contenteditable="true" onblur="rows[${ri}].codigo=this.textContent">${row.codigo}</td>`;
+    tr += `<td class="col-n">${row.n}</td>`;
+    tr += `<td class="col-unidad">${row.unidad}</td>`;
+    tr += `<td class="col-codigo" contenteditable="true" onblur="rows[${ri}].codigo=this.textContent">${row.codigo}</td>`;
     tr += `<td class="proceso-name" contenteditable="true" onblur="rows[${ri}].proceso=this.textContent">${row.proceso}</td>`;
 
     for(let t=0; t<tareas.length; t++) {
