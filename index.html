@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- saved from url=(0123)file:///C:/Users/gladi/OneDrive/0%20PROGRA/11%20ANALISIS%20PROEC.RIESGOS/An%C3%A1lisis%20de%20Procesos%20Cr%C3%ADticos.html -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
@@ -58,8 +58,8 @@
   td.proceso-name { text-align: left; font-size: 8px; width: 320px; min-width: 320px; max-width: 320px; word-wrap: break-word; white-space: normal; }
   td.num-cell { min-width: 25px; }
   td.col-n      { width:22px;  min-width:22px;  max-width:22px;  overflow:hidden; }
-  td.col-unidad { width:28px;  min-width:28px;  max-width:28px;  overflow:hidden; font-size:7px; word-break:break-all; }
-  td.col-codigo { width:45px;  min-width:45px;  max-width:45px;  overflow:hidden; font-size:7px; word-break:break-all; }
+  td.col-unidad { width:36px;  min-width:36px;  max-width:36px;  overflow:hidden; font-size:7px; word-break:break-all; }
+  td.col-codigo { width:55px;  min-width:55px;  max-width:55px;  overflow:hidden; font-size:7px; word-break:break-all; }
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
@@ -226,7 +226,7 @@
   <!-- MAIN TABLE -->
   <div class="table-wrapper">
     <table class="main-table" id="mainTable">
-      <thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;">N°</th><th class="th-fixed" rowspan="3" style="width:28px;min-width:28px;max-width:28px;word-wrap:break-word;white-space:normal;font-size:7px;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:45px;min-width:45px;max-width:45px;font-size:7px;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="min-width:160px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="10" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
+      <thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;">N°</th><th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="min-width:160px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="10" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
@@ -888,8 +888,8 @@ function renderHead() {
   // Row 1: fixed cols + tarea headers
   let r1 = '<tr>';
   r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;">N°</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:28px;min-width:28px;max-width:28px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:45px;min-width:45px;max-width:45px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
   r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;">TAREAS FUNDAMENTALES</th>`;
   for(let t=0; t<tareas.length; t++) {
     const colSpan = tareas[t].subCols.length + 2;
