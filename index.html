@@ -939,7 +939,7 @@ function renderBody() {
         const val = row.scores[t][si];
         tr += `<td class="score-input">
           <select onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
-            <option value="" ${val===null?'selected':''}></option>
+            <option value="" ${val===null?'selected':''} style="color:#bbb;">✕</option>
             <option value="0" ${val===0?'selected':''}>0</option>
             <option value="1" ${val===1?'selected':''}>1</option>
             <option value="2" ${val===2?'selected':''}>2</option>
@@ -949,7 +949,7 @@ function renderBody() {
       });
       tr += `<td class="score-input">
         <select onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
-          <option value="" ${cp===null?'selected':''}></option>
+          <option value="" ${cp===null?'selected':''} style="color:#bbb;">✕</option>
           <option value="0" ${cp===0?'selected':''}>0</option>
           <option value="1" ${cp===1?'selected':''}>1</option>
           <option value="2" ${cp===2?'selected':''}>2</option>
