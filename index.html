@@ -937,7 +937,7 @@ function renderBody() {
       const tot = calcTot(row.scores[t], cp);
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
-        tr += `<td class="score-input">
+        tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
           <select onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
             <option value="" ${val===null?'selected':''} style="color:#bbb;">✕</option>
             <option value="0" ${val===0?'selected':''}>0</option>
@@ -947,7 +947,7 @@ function renderBody() {
           </select>
         </td>`;
       });
-      tr += `<td class="score-input">
+      tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
         <select onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
           <option value="" ${cp===null?'selected':''} style="color:#bbb;">✕</option>
           <option value="0" ${cp===0?'selected':''}>0</option>
