@@ -944,17 +944,21 @@ function renderBody() {
         const val = row.scores[t][si];
         tr += `<td class="score-input${val!==null?' filled':''}">
           <input type="text" maxlength="1" value="${val===null?'':val}"
+            class="score-drag" data-ri="${ri}" data-t="${t}" data-si="${si}"
             oninput="this.value=this.value.replace(/[^0-3]/g,'')"
             onblur="setScore(${ri},${t},${si},this.value)"
-            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';event.stopPropagation()}"
+            onmousedown="isDragging=true"
+            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';setScore(${ri},${t},${si},'')}"
           >
         </td>`;
       });
       tr += `<td class="score-input${cp!==null?' filled':''}">
         <input type="text" maxlength="1" value="${cp===null?'':cp}"
+          class="score-drag" data-ri="${ri}" data-t="${t}" data-si="cp"
           oninput="this.value=this.value.replace(/[^0-3]/g,'')"
           onblur="setCompred(${ri},${t},this.value)"
-          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';event.stopPropagation()}"
+          onmousedown="isDragging=true"
+          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';setCompred(${ri},${t},'')}"
         >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
@@ -1194,7 +1198,7 @@ function imprimirReporte() {
   setTimeout(() => w.print(), 400);
 }
 
-// ─── LIMPIAR SELECTORES ────────────────────────────────────────────────────────
+// ─── LIMPIAR CELDAS ────────────────────────────────────────────────────────────
 function clearSelect(sel) {
   sel.value = '';
   sel.dispatchEvent(new Event('change'));
@@ -1204,6 +1208,33 @@ function clearModulo(ri, t) {
   rows[ri].compredi[t] = null;
   renderBody();
 }
+function clearCell(ri, t, si) {
+  if (si === 'cp') {
+    rows[ri].compredi[t] = null;
+  } else {
+    rows[ri].scores[t][si] = null;
+  }
+}
+
+// ─── ARRASTRE PARA BORRAR ──────────────────────────────────────────────────────
+let isDragging = false;
+document.addEventListener('mousedown', function(e) {
+  if (e.target.classList.contains('score-drag')) isDragging = true;
+});
+document.addEventListener('mouseup', function() {
+  if (isDragging) { isDragging = false; renderBody(); }
+});
+document.addEventListener('mouseover', function(e) {
+  if (!isDragging) return;
+  const inp = e.target.closest('.score-drag');
+  if (inp) {
+    const ri = +inp.dataset.ri, t = +inp.dataset.t, si = inp.dataset.si;
+    clearCell(ri, t, si === 'cp' ? 'cp' : +si);
+    inp.value = '';
+    inp.closest('td').classList.remove('filled');
+    inp.closest('td').classList.add('score-input');
+  }
+});
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 renderHead();
