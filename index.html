@@ -945,29 +945,28 @@ function renderBody() {
         tr += `<td class="score-input${val!==null?' filled':''}">
           <input type="text" maxlength="1" value="${val===null?'':val}"
             class="score-drag" data-ri="${ri}" data-t="${t}" data-si="${si}"
-            oninput="this.value=this.value.replace(/[^0-3]/g,'')"
+            oninput="this.value=this.value.replace(/[^0-3]/g,'');this.closest('td').classList.toggle('filled',this.value!=='')"
             onblur="setScore(${ri},${t},${si},this.value)"
-            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';setScore(${ri},${t},${si},'')}"
+            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setScore(${ri},${t},${si},'')}"
           >
         </td>`;
       });
       tr += `<td class="score-input${cp!==null?' filled':''}">
         <input type="text" maxlength="1" value="${cp===null?'':cp}"
           class="score-drag" data-ri="${ri}" data-t="${t}" data-si="cp"
-          oninput="this.value=this.value.replace(/[^0-3]/g,'')"
+          oninput="this.value=this.value.replace(/[^0-3]/g,'');this.closest('td').classList.toggle('filled',this.value!=='')"
           onblur="setCompred(${ri},${t},this.value)"
-          onmousedown="isDragging=true"
-          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';setCompred(${ri},${t},'')}"
+          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setCompred(${ri},${t},'')}"
         >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
-      tr += `<td class="${totClass}">${tot !== null ? tot : ''}</td>`;
+      tr += `<td id="tot-${ri}-${t}" class="${totClass}">${tot !== null ? tot : ''}</td>`;
     }
 
     const nivel = calcNivel(row);
     const esCritico = nivel !== null && nivel >= 1.5;
-    tr += `<td class="nivel-cell" style="border-left:2px solid #375623;">${nivel !== null ? nivel.toFixed(1) : ''}</td>`;
-    tr += `<td class="${esCritico?'critico-si':'critico-no'}">${nivel !== null ? (esCritico?'ES CRÍTICO':'NO ES CRÍTICO') : ''}</td>`;
+    tr += `<td id="nivel-${ri}" class="nivel-cell" style="border-left:2px solid #375623;">${nivel !== null ? nivel.toFixed(1) : ''}</td>`;
+    tr += `<td id="critico-${ri}" class="${esCritico?'critico-si':'critico-no'}">${nivel !== null ? (esCritico?'ES CRÍTICO':'NO ES CRÍTICO') : ''}</td>`;
     tr += '</tr>';
 
     tbody.innerHTML += tr;
@@ -989,11 +988,33 @@ function renderSummary() {
 
 function setScore(ri, t, si, val) {
   rows[ri].scores[t][si] = val === '' ? null : parseInt(val);
-  renderBody();
+  updateCalcs(ri);
 }
 function setCompred(ri, t, val) {
   rows[ri].compredi[t] = val === '' ? null : parseInt(val);
-  renderBody();
+  updateCalcs(ri);
+}
+
+// Actualiza solo TOT, NIVEL y CRITICO sin re-renderizar la tabla completa
+function updateCalcs(ri) {
+  for (let t = 0; t < tareas.length; t++) {
+    const tot = calcTot(rows[ri].scores[t], rows[ri].compredi[t]);
+    const totCell = document.getElementById(`tot-${ri}-${t}`);
+    if (totCell) {
+      totCell.textContent = tot !== null ? tot : '';
+      totCell.className = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
+    }
+  }
+  const nivel = calcNivel(rows[ri]);
+  const esCritico = nivel !== null && nivel >= 1.5;
+  const nivelCell = document.getElementById(`nivel-${ri}`);
+  const criticoCell = document.getElementById(`critico-${ri}`);
+  if (nivelCell) nivelCell.textContent = nivel !== null ? nivel.toFixed(1) : '';
+  if (criticoCell) {
+    criticoCell.className = esCritico ? 'critico-si' : 'critico-no';
+    criticoCell.textContent = nivel !== null ? (esCritico ? 'ES CRÍTICO' : 'NO ES CRÍTICO') : '';
+  }
+  renderSummary();
 }
 
 // ─── ROW MANAGEMENT ────────────────────────────────────────────────────────────
