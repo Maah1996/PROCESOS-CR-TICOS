@@ -57,9 +57,10 @@
   /* Data cells */
   td.proceso-name { text-align: left; font-size: 8px; width: 320px; min-width: 320px; max-width: 320px; word-wrap: break-word; white-space: normal; }
   td.num-cell { min-width: 25px; }
-  td.col-n      { width:22px;  min-width:22px;  max-width:22px;  overflow:hidden; }
-  td.col-unidad { width:36px;  min-width:36px;  max-width:36px;  overflow:hidden; font-size:7px; word-break:break-all; }
-  td.col-codigo { width:55px;  min-width:55px;  max-width:55px;  overflow:hidden; font-size:7px; word-break:break-all; }
+  td.col-n      { width:22px;  min-width:22px;  max-width:22px;  overflow:hidden; position:sticky; left:0;   background:white; z-index:2; }
+  td.col-unidad { width:36px;  min-width:36px;  max-width:36px;  overflow:hidden; font-size:7px; word-break:break-all; position:sticky; left:22px;  background:white; z-index:2; }
+  td.col-codigo { width:55px;  min-width:55px;  max-width:55px;  overflow:hidden; font-size:7px; word-break:break-all; position:sticky; left:58px;  background:white; z-index:2; }
+  td.proceso-name { position:sticky; left:113px; background:white; z-index:2; }
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
@@ -154,8 +155,8 @@
     </div>
     <div id="summary">
     <div class="summary-card"><div class="val val-total">7</div><div class="lbl">Procesos Totales</div></div>
-    <div class="summary-card"><div class="val val-critico">2</div><div class="lbl">Procesos Críticos</div></div>
-    <div class="summary-card"><div class="val val-porc">29%</div><div class="lbl">% Criticidad</div></div>
+    <div class="summary-card"><div class="val val-critico">0</div><div class="lbl">Procesos Críticos</div></div>
+    <div class="summary-card"><div class="val val-porc">0%</div><div class="lbl">% Criticidad</div></div>
   </div>
   </div>
 
@@ -231,7 +232,7 @@
 
   <!-- MAIN TABLE -->
   <div class="table-wrapper">
-    <table class="main-table" id="mainTable"><colgroup><col style="width:22px;"><col style="width:28px;"><col style="width:45px;"><col style="width:320px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:32px;"><col style="width:26px;"><col style="width:70px;"><col style="width:80px;"></colgroup><thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;">N°</th><th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="10" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
+    <table class="main-table" id="mainTable"><colgroup><col style="width:22px;"><col style="width:28px;"><col style="width:45px;"><col style="width:320px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:26px;"><col style="width:32px;"><col style="width:26px;"><col style="width:70px;"><col style="width:80px;"></colgroup><thead id="tableHead"><tr><th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;">N°</th><th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th><th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th><th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;">TAREAS FUNDAMENTALES</th><th class="th-tarea" colspan="11" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
       <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
         <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
@@ -261,27 +262,32 @@
       </th><th class="th-sub-num" style="position:relative;">
         <div contenteditable="true" onblur="tareas[0].subCols[7]=this.textContent.trim()||&#39;VIII&#39;" style="outline:none;min-width:10px;">VIII</div>
         
-      </th><th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.<button onclick="delSubCol(0)" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">−</button></th><th class="th-tot">TOT</th></tr></thead><tbody id="tableBody"><tr><td class="col-n">1</td><td class="col-unidad">I</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[0].codigo=this.textContent">1.1</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[0].proceso=this.textContent">Gestión General del Departamento</td><td class="score-input filled">
+      </th><th class="th-sub-num" style="position:relative;">
+        <div contenteditable="true" onblur="tareas[0].subCols[8]=this.textContent.trim()||&#39;IX&#39;" style="outline:none;min-width:10px;">DICE</div>
+        
+      </th><th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.<button onclick="delSubCol(0)" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">−</button></th><th class="th-tot">TOT</th></tr></thead><tbody id="tableBody"><tr><td class="col-n">1</td><td class="col-unidad">I</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[0].codigo=this.textContent">1.1</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[0].proceso=this.textContent">Gestión General del Departamento</td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="0" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,0,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="1" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,1,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,1,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="2" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,2,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,2,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="3" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,3,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,3,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="4" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,4,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,4,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="5" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,5,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,5,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="6" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,6,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,6,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,7,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(0,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(0,0,8,&#39;&#39;)}">
+        </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="0" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(0,0,&#39;&#39;)}">
-      </td><td id="tot-0-0" class="tot-cell">1.6</td><td id="nivel-0" class="nivel-cell" style="border-left:2px solid #375623;">1.6</td><td id="critico-0" class="critico-si">ES CRÍTICO</td></tr><tr><td class="col-n">2</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[1].codigo=this.textContent">1.2</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[1].proceso=this.textContent">Naturalización de la Inteligencia Básica y actual</td><td class="score-input filled">
+      </td><td id="tot-0-0" class="tot-cell"></td><td id="nivel-0" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-0" class="critico-no"></td></tr><tr><td class="col-n">2</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[1].codigo=this.textContent">1.2</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[1].proceso=this.textContent">Naturalización de la Inteligencia Básica y actual</td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="0" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(1,0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(1,0,0,&#39;&#39;)}">
-        </td><td class="score-input filled">
+        </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="1" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(1,0,1,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(1,0,1,&#39;&#39;)}">
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="2" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(1,0,2,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(1,0,2,&#39;&#39;)}">
@@ -296,8 +302,10 @@
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(1,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(1,0,7,&#39;&#39;)}">
         </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(1,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(1,0,8,&#39;&#39;)}">
+        </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="1" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(1,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(1,0,&#39;&#39;)}">
-      </td><td id="tot-1-0" class="tot-critico">2.5</td><td id="nivel-1" class="nivel-cell" style="border-left:2px solid #375623;">2.5</td><td id="critico-1" class="critico-si">ES CRÍTICO</td></tr><tr><td class="col-n">3</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[2].codigo=this.textContent">1.3</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[2].proceso=this.textContent">Desarrollo y control de medidas de seguridad militar.</td><td class="score-input">
+      </td><td id="tot-1-0" class="tot-cell"></td><td id="nivel-1" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-1" class="critico-no"></td></tr><tr><td class="col-n">3</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[2].codigo=this.textContent">1.3</td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[2].proceso=this.textContent">Desarrollo y control de medidas de seguridad militar.</td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="0" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(2,0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(2,0,0,&#39;&#39;)}">
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="1" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(2,0,1,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(2,0,1,&#39;&#39;)}">
@@ -313,6 +321,8 @@
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="6" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(2,0,6,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(2,0,6,&#39;&#39;)}">
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(2,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(2,0,7,&#39;&#39;)}">
+        </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(2,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(2,0,8,&#39;&#39;)}">
         </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="2" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(2,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(2,0,&#39;&#39;)}">
       </td><td id="tot-2-0" class="tot-cell"></td><td id="nivel-2" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-2" class="critico-no"></td></tr><tr><td class="col-n">4</td><td class="col-unidad">II</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[3].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[3].proceso=this.textContent">Control de proceso de clasificación de la información de interés al ES.</td><td class="score-input">
@@ -332,6 +342,8 @@
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="3" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(3,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(3,0,7,&#39;&#39;)}">
         </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="3" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(3,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(3,0,8,&#39;&#39;)}">
+        </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="3" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(3,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(3,0,&#39;&#39;)}">
       </td><td id="tot-3-0" class="tot-cell"></td><td id="nivel-3" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-3" class="critico-no"></td></tr><tr><td class="col-n">5</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[4].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[4].proceso=this.textContent">Renovar o actualizar iniciativas de alto impacto.</td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="4" data-t="0" data-si="0" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(4,0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(4,0,0,&#39;&#39;)}">
@@ -349,6 +361,8 @@
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="4" data-t="0" data-si="6" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(4,0,6,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(4,0,6,&#39;&#39;)}">
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="4" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(4,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(4,0,7,&#39;&#39;)}">
+        </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="4" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(4,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(4,0,8,&#39;&#39;)}">
         </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="4" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(4,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(4,0,&#39;&#39;)}">
       </td><td id="tot-4-0" class="tot-cell"></td><td id="nivel-4" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-4" class="critico-no"></td></tr><tr><td class="col-n">6</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[5].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[5].proceso=this.textContent">Planificación, coordinación y conducción de las fuerzas que se desprenden a diferentes unidades de misión.</td><td class="score-input">
@@ -368,6 +382,8 @@
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="5" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(5,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(5,0,7,&#39;&#39;)}">
         </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="5" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(5,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(5,0,8,&#39;&#39;)}">
+        </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="5" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(5,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(5,0,&#39;&#39;)}">
       </td><td id="tot-5-0" class="tot-cell"></td><td id="nivel-5" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-5" class="critico-no"></td></tr><tr><td class="col-n">7</td><td class="col-unidad">III</td><td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[6].codigo=this.textContent"></td><td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[6].proceso=this.textContent">Entrega de medios de la VDE, para las operaciones militares distintas a la guerra, u otras de utilidad internacional.</td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="6" data-t="0" data-si="0" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(6,0,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(6,0,0,&#39;&#39;)}">
@@ -385,6 +401,8 @@
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="6" data-t="0" data-si="6" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(6,0,6,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(6,0,6,&#39;&#39;)}">
         </td><td class="score-input">
           <input type="text" maxlength="1" value="" class="score-drag" data-ri="6" data-t="0" data-si="7" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(6,0,7,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(6,0,7,&#39;&#39;)}">
+        </td><td class="score-input">
+          <input type="text" maxlength="1" value="" class="score-drag" data-ri="6" data-t="0" data-si="8" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setScore(6,0,8,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setScore(6,0,8,&#39;&#39;)}">
         </td><td class="score-input">
         <input type="text" maxlength="1" value="" class="score-drag" data-ri="6" data-t="0" data-si="cp" oninput="this.value=this.value.replace(/[^0-3]/g,&#39;&#39;);this.closest(&#39;td&#39;).classList.toggle(&#39;filled&#39;,this.value!==&#39;&#39;)" onblur="setCompred(6,0,this.value)" onkeydown="if(event.key===&#39;Delete&#39;||event.key===&#39;Backspace&#39;){this.value=&#39;&#39;;this.closest(&#39;td&#39;).classList.remove(&#39;filled&#39;);setCompred(6,0,&#39;&#39;)}">
       </td><td id="tot-6-0" class="tot-cell"></td><td id="nivel-6" class="nivel-cell" style="border-left:2px solid #375623;"></td><td id="critico-6" class="critico-no"></td></tr></tbody></table>
@@ -512,10 +530,10 @@ function renderHead() {
 
   // Row 1: fixed cols + tarea headers
   let r1 = '<tr>';
-  r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;">N°</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;">UNIDAD</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;">TAREAS FUNDAMENTALES</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;">N°</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;">UNIDAD</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;">TAREAS FUNDAMENTALES</th>`;
   for(let t=0; t<tareas.length; t++) {
     const colSpan = tareas[t].subCols.length + 2;
     const isFirst = t === 0;
@@ -912,13 +930,15 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ─── ENTER AVANZA A LA SIGUIENTE CELDA ────────────────────────────────────────
+// ─── ENTER BAJA A LA MISMA COLUMNA, FILA SIGUIENTE ───────────────────────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && e.target.classList.contains('score-drag')) {
     e.preventDefault();
-    const all = Array.from(document.querySelectorAll('.score-drag'));
-    const idx = all.indexOf(e.target);
-    if (idx >= 0 && idx < all.length - 1) all[idx + 1].focus();
+    const ri = +e.target.dataset.ri;
+    const t  = e.target.dataset.t;
+    const si = e.target.dataset.si;
+    const next = document.querySelector(`.score-drag[data-ri="${ri+1}"][data-t="${t}"][data-si="${si}"]`);
+    if (next) next.focus();
   }
 });
 
