@@ -903,10 +903,11 @@ document.addEventListener('mousemove', function(e) {
   if (!isDragging && (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4)) {
     isDragging = true;
   }
-});
-document.addEventListener('mouseover', function(e) {
   if (!isDragging) return;
-  const inp = e.target.closest('.score-drag');
+  // Usar elementFromPoint para detectar la celda bajo el cursor con precisión
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (!el) return;
+  const inp = el.classList.contains('score-drag') ? el : el.closest('.score-drag');
   if (inp && !selectedInputs.includes(inp)) {
     selectedInputs.push(inp);
     inp.closest('td').classList.add('selected');
