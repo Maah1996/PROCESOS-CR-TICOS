@@ -947,7 +947,6 @@ function renderBody() {
             class="score-drag" data-ri="${ri}" data-t="${t}" data-si="${si}"
             oninput="this.value=this.value.replace(/[^0-3]/g,'')"
             onblur="setScore(${ri},${t},${si},this.value)"
-            onmousedown="isDragging=true"
             onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';setScore(${ri},${t},${si},'')}"
           >
         </td>`;
@@ -1218,11 +1217,21 @@ function clearCell(ri, t, si) {
 
 // ─── ARRASTRE PARA BORRAR ──────────────────────────────────────────────────────
 let isDragging = false;
+let dragPending = false;
+let dragStartX = 0, dragStartY = 0;
+
 document.addEventListener('mousedown', function(e) {
-  if (e.target.classList.contains('score-drag')) isDragging = true;
+  if (e.target.closest('.score-drag')) {
+    dragPending = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+  }
 });
-document.addEventListener('mouseup', function() {
-  if (isDragging) { isDragging = false; renderBody(); }
+document.addEventListener('mousemove', function(e) {
+  if (!dragPending || isDragging) return;
+  if (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4) {
+    isDragging = true;
+  }
 });
 document.addEventListener('mouseover', function(e) {
   if (!isDragging) return;
@@ -1231,9 +1240,14 @@ document.addEventListener('mouseover', function(e) {
     const ri = +inp.dataset.ri, t = +inp.dataset.t, si = inp.dataset.si;
     clearCell(ri, t, si === 'cp' ? 'cp' : +si);
     inp.value = '';
+    inp.blur();
     inp.closest('td').classList.remove('filled');
-    inp.closest('td').classList.add('score-input');
   }
+});
+document.addEventListener('mouseup', function() {
+  if (isDragging) renderBody();
+  isDragging = false;
+  dragPending = false;
 });
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
