@@ -63,8 +63,8 @@
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
-  td.score-input select { width: 26px; border: none; background: transparent; font-size: 8px; text-align: center; padding: 0; outline: none; cursor: pointer; }
-  td.score-input select:focus { outline: none; box-shadow: none; }
+  td.score-input input { width: 24px; border: none; background: transparent; font-size: 9px; text-align: center; padding: 0; outline: none; font-weight: bold; color: #333; }
+  td.score-input input:focus { background: #e8f4ff; }
   td.btn-clear { width: 18px; min-width: 18px; max-width: 18px; padding: 0; }
   td.btn-clear button { width: 16px; height: 16px; border: none; background: #e74c3c; color: white; font-size: 8px; cursor: pointer; border-radius: 2px; line-height: 1; }
   .th-sub-num { width: 26px; min-width: 26px; max-width: 26px; font-size: 7px; }
@@ -940,24 +940,20 @@ function renderBody() {
       const tot = calcTot(row.scores[t], cp);
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
-        tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-          <select onchange="setScore(${ri},${t},${si},this.value);this.blur()" onkeydown="if(event.key==='Delete'||event.key==='Del'){event.preventDefault();clearSelect(this)}">
-            <option value="" ${val===null?'selected':''}></option>
-            <option value="0" ${val===0?'selected':''}>0</option>
-            <option value="1" ${val===1?'selected':''}>1</option>
-            <option value="2" ${val===2?'selected':''}>2</option>
-            <option value="3" ${val===3?'selected':''}>3</option>
-          </select>
+        tr += `<td class="score-input">
+          <input type="text" maxlength="1" value="${val===null?'':val}"
+            oninput="this.value=this.value.replace(/[^0-3]/g,'')"
+            onblur="setScore(${ri},${t},${si},this.value)"
+            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';event.stopPropagation()}"
+          >
         </td>`;
       });
-      tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-        <select onchange="setCompred(${ri},${t},this.value);this.blur()" onkeydown="if(event.key==='Delete'||event.key==='Del'){event.preventDefault();clearSelect(this)}">
-          <option value="" ${cp===null?'selected':''}></option>
-          <option value="0" ${cp===0?'selected':''}>0</option>
-          <option value="1" ${cp===1?'selected':''}>1</option>
-          <option value="2" ${cp===2?'selected':''}>2</option>
-          <option value="3" ${cp===3?'selected':''}>3</option>
-        </select>
+      tr += `<td class="score-input">
+        <input type="text" maxlength="1" value="${cp===null?'':cp}"
+          oninput="this.value=this.value.replace(/[^0-3]/g,'')"
+          onblur="setCompred(${ri},${t},this.value)"
+          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';event.stopPropagation()}"
+        >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
       tr += `<td class="${totClass}" style="position:relative;">
