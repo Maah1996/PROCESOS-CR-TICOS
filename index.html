@@ -927,7 +927,6 @@ function renderBody() {
   const tbody = document.getElementById('tableBody');
   tbody.innerHTML = '';
 
-  let tabIdx = 1;
   rows.forEach((row, ri) => {
     let tr = `<tr>`;
     tr += `<td class="col-n">${row.n}</td>`;
@@ -941,7 +940,7 @@ function renderBody() {
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
         tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-          <select tabindex="${tabIdx++}" onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
+          <select onchange="setScore(${ri},${t},${si},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Del'){event.preventDefault();clearSelect(this)}">
             <option value="" ${val===null?'selected':''}></option>
             <option value="0" ${val===0?'selected':''}>0</option>
             <option value="1" ${val===1?'selected':''}>1</option>
@@ -951,7 +950,7 @@ function renderBody() {
         </td>`;
       });
       tr += `<td class="score-input" ondblclick="clearSelect(this.querySelector('select'))" title="Doble clic para borrar">
-        <select tabindex="${tabIdx++}" onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();clearSelect(this)}">
+        <select onchange="setCompred(${ri},${t},this.value)" onkeydown="if(event.key==='Delete'||event.key==='Del'){event.preventDefault();clearSelect(this)}">
           <option value="" ${cp===null?'selected':''}></option>
           <option value="0" ${cp===0?'selected':''}>0</option>
           <option value="1" ${cp===1?'selected':''}>1</option>
