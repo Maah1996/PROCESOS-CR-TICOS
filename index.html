@@ -63,8 +63,10 @@
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
-  td.score-input input { width: 24px; border: none; background: transparent; font-size: 9px; text-align: center; padding: 0; outline: none; font-weight: bold; color: #333; }
-  td.score-input input:focus { background: #e8f4ff; }
+  td.score-input { background: #ebebeb; }
+  td.score-input input { width: 24px; border: none; background: transparent; font-size: 9px; text-align: center; padding: 0; outline: none; font-weight: bold; color: #222; }
+  td.score-input.filled { background: #cce4ff; }
+  td.score-input input:focus { background: transparent; }
   td.btn-clear { width: 18px; min-width: 18px; max-width: 18px; padding: 0; }
   td.btn-clear button { width: 16px; height: 16px; border: none; background: #e74c3c; color: white; font-size: 8px; cursor: pointer; border-radius: 2px; line-height: 1; }
   .th-sub-num { width: 26px; min-width: 26px; max-width: 26px; font-size: 7px; }
@@ -940,7 +942,7 @@ function renderBody() {
       const tot = calcTot(row.scores[t], cp);
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
-        tr += `<td class="score-input">
+        tr += `<td class="score-input${val!==null?' filled':''}">
           <input type="text" maxlength="1" value="${val===null?'':val}"
             oninput="this.value=this.value.replace(/[^0-3]/g,'')"
             onblur="setScore(${ri},${t},${si},this.value)"
@@ -948,7 +950,7 @@ function renderBody() {
           >
         </td>`;
       });
-      tr += `<td class="score-input">
+      tr += `<td class="score-input${cp!==null?' filled':''}">
         <input type="text" maxlength="1" value="${cp===null?'':cp}"
           oninput="this.value=this.value.replace(/[^0-3]/g,'')"
           onblur="setCompred(${ri},${t},this.value)"
@@ -956,10 +958,7 @@ function renderBody() {
         >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
-      tr += `<td class="${totClass}" style="position:relative;">
-        ${tot !== null ? tot : ''}
-        <button onclick="clearModulo(${ri},${t})" title="Limpiar módulo" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">✕</button>
-      </td>`;
+      tr += `<td class="${totClass}">${tot !== null ? tot : ''}</td>`;
     }
 
     const nivel = calcNivel(row);
