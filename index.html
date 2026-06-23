@@ -67,7 +67,11 @@
   .main-table th, .main-table td { border: 1px solid #aaa; padding: 2px 3px; text-align: center; vertical-align: middle; }
 
   /* Header rows */
-  .th-tarea { background: #bdd7ee; font-size: 8px; font-weight: bold; vertical-align: top; padding: 4px; }
+  .th-tarea { background: #bdd7ee; font-size: 8px; font-weight: bold; vertical-align: top; padding: 4px; height: 1px; }
+  /* Wrapper flex para alinear los controles de tamaño al fondo de cada módulo */
+  .th-tarea-inner { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
+  .th-tarea-inner .mod-texto { font-weight: normal; text-align: justify; text-align-last: center; }
+  .mod-ctrls { margin-top: auto; padding-top: 4px; }
   .th-fixed { background: #dce6f1; font-weight: bold; font-size: 8px; }
   .th-tot { background: #ffd966; font-weight: bold; }
   .th-nivel { background: #a9d18e; font-weight: bold; font-size: 8px; }
@@ -214,7 +218,7 @@
         <tbody>
           <tr><td class="hl-inst" id="h-inst">EJÉRCITO DE CHILE</td></tr>
           <tr><td class="hl-div" id="h-div">V DIVISIÓN</td></tr>
-          <tr><td class="hl-unidad" id="h-unidad" contenteditable="true" title="Haga clic para editar la unidad">Comandancia en Jefe</td></tr>
+          <tr><td class="hl-unidad" id="h-unidad" contenteditable="true" onblur="autoguardar()" title="Haga clic para editar la unidad">Comandancia en Jefe</td></tr>
           <tr><td class="mision-label">
             <span>MISIÓN</span>
             <span class="size-ctrl no-print">
@@ -225,7 +229,7 @@
               <button onclick="cambiarTexto('mision',1)" title="Aumentar letra">+</button>
             </span>
           </td></tr>
-          <tr><td class="mision-text" id="h-mision" contenteditable="true" title="Haga clic para editar la misión">Al mando del CJ V DE y Estado Mayor del Cuartel General, desarrollar durante las etapas de preparación y conducción, actividades inherentes a la agenda de la División, relacionadas con procesos de planificación y ejecución en MO y MOTOUU, que le corresponda realizar a sus unidades subordinadas en su AOR, a través de una organización y funcionamiento eficaz y eficiente, que permita un trabajo funcional entre distintas organizaciones internas, así como tareas que disponga el ES.</td></tr>
+          <tr><td class="mision-text" id="h-mision" contenteditable="true" onblur="autoguardar()" title="Haga clic para editar la misión">Al mando del CJ V DE y Estado Mayor del Cuartel General, desarrollar durante las etapas de preparación y conducción, actividades inherentes a la agenda de la División, relacionadas con procesos de planificación y ejecución en MO y MOTOUU, que le corresponda realizar a sus unidades subordinadas en su AOR, a través de una organización y funcionamiento eficaz y eficiente, que permita un trabajo funcional entre distintas organizaciones internas, así como tareas que disponga el ES.</td></tr>
         </tbody>
       </table>
     </div>
@@ -483,28 +487,28 @@ function addTarea() {
   const n = refCols.length;
   tareas.push({ text: 'Nueva Tarea Fundamental ' + (tareas.length + 1), subCols: refCols.slice() });
   rows.forEach(r => { r.scores.push(Array(n).fill(null)); r.compredi.push(null); });
-  renderHead(); renderBody();
+  renderHead(); renderBody(); autoguardar();
 }
 
 function delTarea() {
   if (tareas.length <= 1) return alert('Debe quedar al menos 1 módulo.');
   tareas.pop();
   rows.forEach(r => { r.scores.pop(); r.compredi.pop(); });
-  renderHead(); renderBody();
+  renderHead(); renderBody(); autoguardar();
 }
 
 function addSubCol(ti) {
   const next = ROMAN[tareas[ti].subCols.length] || (tareas[ti].subCols.length + 1).toString();
   tareas[ti].subCols.push(next);
   rows.forEach(r => r.scores[ti].push(null));
-  renderHead(); renderBody();
+  renderHead(); renderBody(); autoguardar();
 }
 
 function delSubCol(ti) {
   if (tareas[ti].subCols.length <= 1) return alert('Debe quedar al menos 1 columna.');
   tareas[ti].subCols.pop();
   rows.forEach(r => r.scores[ti].pop());
-  renderHead(); renderBody();
+  renderHead(); renderBody(); autoguardar();
 }
 
 // ─── DATE ──────────────────────────────────────────────────────────────────────
@@ -523,6 +527,7 @@ function toggleConfig() {
 function updateHeader() {
   document.getElementById('h-inst').textContent = document.getElementById('cfg-inst').value;
   document.getElementById('h-div').textContent  = document.getElementById('cfg-div').value;
+  autoguardar();
 }
 
 // ─── CALCULATIONS ──────────────────────────────────────────────────────────────
@@ -577,12 +582,14 @@ function renderHead() {
     const colSpan = tareas[t].subCols.length + 2;
     const isFirst = t === 0;
     r1 += `<th class="th-tarea" colspan="${colSpan}" style="max-width:180px;vertical-align:top;text-align:left;padding:4px;">
-      ${isFirst ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
-        <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
-      </div>` : ''}
-      <div contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:justify;">${escapeHtml(tareas[t].text)}</div>
-      <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-top:3px;">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</div>
+      <div class="th-tarea-inner">
+        ${isFirst ? `<div class="no-print" style="display:flex;justify-content:space-between;margin-bottom:4px;">
+          <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
+          <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
+        </div>` : ''}
+        <div class="mod-texto" contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(tareas[t].text)}</div>
+        <div class="no-print mod-ctrls" style="display:flex;gap:8px;justify-content:flex-end;">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</div>
+      </div>
     </th>`;
   }
   r1 += `<th class="th-nivel-final" rowspan="3" style="width:75px;min-width:75px;max-width:75px;font-size:7px;border-left:2px solid #375623;">NIVEL DE<br>CONTRIBUCIÓN</th>`;
@@ -595,7 +602,7 @@ function renderHead() {
     tareas[t].subCols.forEach((s, si) => {
       const isFirst = si === 0;
       r2 += `<th class="th-sub-num" style="position:relative;">
-        <div contenteditable="true" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}'" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
+        <div contenteditable="true" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}';autoguardar()" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
         ${isFirst ? `<button onclick="addSubCol(${t})" style="position:absolute;top:1px;left:1px;font-size:7px;padding:0 2px;background:#4472c4;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">+</button>` : ''}
       </th>`;
     });
@@ -616,8 +623,8 @@ function renderBody() {
     let tr = `<tr>`;
     tr += `<td class="col-n">${row.n}</td>`;
     tr += `<td class="col-unidad">${escapeHtml(row.unidad)}</td>`;
-    tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[${ri}].codigo=this.textContent">${escapeHtml(row.codigo)}</td>`;
-    tr += `<td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[${ri}].proceso=this.textContent">${escapeHtml(row.proceso)}</td>`;
+    tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[${ri}].codigo=this.textContent;autoguardar()">${escapeHtml(row.codigo)}</td>`;
+    tr += `<td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[${ri}].proceso=this.textContent;autoguardar()">${escapeHtml(row.proceso)}</td>`;
 
     for(let t=0; t<tareas.length; t++) {
       const cp = row.compredi[t];
@@ -697,6 +704,7 @@ function updateCalcs(ri) {
     criticoCell.textContent = nivel !== null ? (esCritico ? 'ES CRÍTICO' : 'NO ES CRÍTICO') : '';
   }
   renderSummary();
+  autoguardar();
 }
 
 // ─── ROW MANAGEMENT ────────────────────────────────────────────────────────────
@@ -709,12 +717,14 @@ function addRow() {
     compredi: newCompredi()
   });
   renderBody();
+  autoguardar();
 }
 
 function delLastRow() {
   if(rows.length <= 1) return alert('Debe quedar al menos 1 proceso.');
   rows.pop();
   renderBody();
+  autoguardar();
 }
 
 // ─── BASE DE DATOS (localStorage) ─────────────────────────────────────────────
@@ -768,6 +778,7 @@ function guardarRegistro() {
   // Resetear a 3 filas vacías tras guardar
   resetRows();
   renderBody();
+  autoguardar();
 
   const btn = document.querySelector('.btn-save');
   btn.textContent = '✅ Guardado';
@@ -1053,9 +1064,33 @@ document.addEventListener('paste', function(e) {
   document.execCommand('insertText', false, texto);
 });
 
+// ─── AUTO-GUARDADO DEL TRABAJO EN CURSO ──────────────────────────────────────────
+// Guarda automáticamente lo que estás trabajando para que al recargar siga igual.
+const AUTOSAVE_KEY = 'procesos_criticos_autosave';
+function autoguardar() {
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig() }));
+  } catch (e) {}
+}
+function restaurarAutoguardado() {
+  try {
+    const raw = localStorage.getItem(AUTOSAVE_KEY);
+    if (!raw) return null;
+    const est = JSON.parse(raw);
+    if (est && Array.isArray(est.tareas) && Array.isArray(est.rows)) {
+      tareas = est.tareas;
+      rows = est.rows;
+      return est.header || null;
+    }
+  } catch (e) {}
+  return null;
+}
+
 // ─── INIT ──────────────────────────────────────────────────────────────────────
+const headerGuardado = restaurarAutoguardado();
 renderHead();
 renderBody();
+if (headerGuardado) applyHeaderConfig(headerGuardado);
 aplicarEstilosTamano();
 </script>
 
