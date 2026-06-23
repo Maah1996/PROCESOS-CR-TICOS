@@ -41,6 +41,7 @@
   .mision-label { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 4px; }
   /* Control de tamaño de letra por bloque (modelo tipo Word) */
   .size-ctrl { display: inline-flex; align-items: center; gap: 2px; }
+  .size-lbl { font-size: 8px; font-weight: bold; color: #333; margin-right: 1px; }
   .size-ctrl button { width: 16px; height: 16px; padding: 0; border: 1px solid #9bb; background: #fff; color: #333; font-weight: bold; font-size: 11px; line-height: 1; cursor: pointer; border-radius: 2px; }
   .size-ctrl button:hover { background: #eef4ff; }
   .size-ctrl select { font-size: 10px; padding: 0 1px; border: 1px solid #9bb; border-radius: 2px; cursor: pointer; }
@@ -580,8 +581,8 @@ function renderHead() {
         <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
       </div>` : ''}
-      <div contenteditable="true" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:left;">${escapeHtml(tareas[t].text)}</div>
-      <div class="no-print" style="text-align:right;margin-top:3px;">${ctrlTamano('mod' + t)}</div>
+      <div contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:left;">${escapeHtml(tareas[t].text)}</div>
+      <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-top:3px;">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</div>
     </th>`;
   }
   r1 += `<th class="th-nivel-final" rowspan="3" style="width:75px;min-width:75px;max-width:75px;font-size:7px;border-left:2px solid #375623;">NIVEL DE<br>CONTRIBUCIÓN</th>`;
@@ -988,19 +989,22 @@ function getSizes() {
 function selectorDe(clave) {
   if (clave === 'mision') return '#h-mision';
   if (clave === 'tareas') return '.proceso-name';
-  if (clave.startsWith('mod')) return '.score-input input[data-t="' + clave.slice(3) + '"]';
+  if (clave.startsWith('modtext')) return '[data-modtext="' + clave.slice(7) + '"]';   // párrafo de la tarea
+  if (clave.startsWith('modnum'))  return '.score-input input[data-t="' + clave.slice(6) + '"]'; // números
   return null;
 }
 function defaultDe(clave) {                       // solo para mostrar en el selector
   if (clave === 'tareas') return 8;
-  if (clave.startsWith('mod')) return 10;
+  if (clave.startsWith('modtext')) return 8;
+  if (clave.startsWith('modnum')) return 10;
   return 10;                                      // misión
 }
 
 // Genera el HTML de un control (selector 8–18 + botones − / +). No se imprime.
-function ctrlTamano(clave) {
+function ctrlTamano(clave, etiqueta) {
   const opts = SIZE_OPCIONES.map(n => '<option>' + n + '</option>').join('');
-  return '<span class="size-ctrl no-print">' +
+  const lbl = etiqueta ? '<span class="size-lbl">' + etiqueta + '</span>' : '';
+  return '<span class="size-ctrl no-print">' + lbl +
     '<button type="button" onclick="cambiarTexto(\'' + clave + '\',-1)" title="Reducir letra">−</button>' +
     '<select id="size-' + clave + '" onchange="setTexto(\'' + clave + '\',parseInt(this.value))">' + opts + '</select>' +
     '<button type="button" onclick="cambiarTexto(\'' + clave + '\',1)" title="Aumentar letra">+</button>' +
@@ -1011,7 +1015,7 @@ function ctrlTamano(clave) {
 function aplicarEstilosTamano() {
   const sizes = getSizes();
   const claves = ['mision', 'tareas'];
-  for (let t = 0; t < tareas.length; t++) claves.push('mod' + t);
+  for (let t = 0; t < tareas.length; t++) { claves.push('modtext' + t); claves.push('modnum' + t); }
 
   let css = '';
   claves.forEach(clave => {
