@@ -5,6 +5,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<script>
+/* Anti-caché automático: si la URL no trae ?v=, recarga una vez agregándolo con la hora actual.
+   Así GitHub Pages siempre entrega la última versión sin tener que hacer Ctrl+Shift+R. */
+(function () {
+  if (!/[?&]v=/.test(location.search)) {
+    var sep = location.search ? '&' : '?';
+    location.replace(location.pathname + location.search + sep + 'v=' + Date.now());
+  }
+})();
+</script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Análisis de Procesos Críticos</title>
