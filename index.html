@@ -571,7 +571,7 @@ function renderHead() {
   r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;">N°</th>`;
   r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;">UNIDAD</th>`;
   r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;">TAREAS FUNDAMENTALES</th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;">TAREAS FUNDAMENTALES<div class="no-print" style="margin-top:4px;">${ctrlTamano('tareas')}</div></th>`;
   for(let t=0; t<tareas.length; t++) {
     const colSpan = tareas[t].subCols.length + 2;
     const isFirst = t === 0;
@@ -581,6 +581,7 @@ function renderHead() {
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
       </div>` : ''}
       <div contenteditable="true" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:left;">${escapeHtml(tareas[t].text)}</div>
+      <div class="no-print" style="text-align:right;margin-top:3px;">${ctrlTamano('mod' + t)}</div>
     </th>`;
   }
   r1 += `<th class="th-nivel-final" rowspan="3" style="width:75px;min-width:75px;max-width:75px;font-size:7px;border-left:2px solid #375623;">NIVEL DE<br>CONTRIBUCIÓN</th>`;
@@ -603,6 +604,7 @@ function renderHead() {
   r2 += '</tr>';
 
   newHead.innerHTML = r1 + r2;
+  aplicarEstilosTamano();   // refleja tamaños guardados en los selectores recién creados
 }
 
 function renderBody() {
@@ -972,38 +974,70 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ─── TAMAÑO DE LETRA POR BLOQUE ──────────────────────────────────────────────────
-// Tamaños disponibles (px) y el elemento que controla cada clave.
+// ─── TAMAÑO DE LETRA POR BLOQUE / COLUMNA ────────────────────────────────────────
+// Cada control tiene una "clave": 'mision', 'tareas' (columna Tareas Fundamentales)
+// o 'mod<t>' (las celdas de números del módulo t). Los tamaños se aplican mediante
+// una hoja de estilos dinámica, así sobreviven a re-render de la tabla.
 const SIZE_OPCIONES = [8, 10, 12, 13, 14, 16, 18];
-const SIZE_TARGETS = { mision: 'h-mision' };   // se agregarán más bloques cuando se pidan
 const SIZE_KEY = 'procesos_criticos_sizes';
 
 function getSizes() {
   try { return JSON.parse(localStorage.getItem(SIZE_KEY)) || {}; }
   catch(e) { return {}; }
 }
+function selectorDe(clave) {
+  if (clave === 'mision') return '#h-mision';
+  if (clave === 'tareas') return '.proceso-name';
+  if (clave.startsWith('mod')) return '.score-input input[data-t="' + clave.slice(3) + '"]';
+  return null;
+}
+function defaultDe(clave) {                       // solo para mostrar en el selector
+  if (clave === 'tareas') return 8;
+  if (clave.startsWith('mod')) return 10;
+  return 10;                                      // misión
+}
+
+// Genera el HTML de un control (selector 8–18 + botones − / +). No se imprime.
+function ctrlTamano(clave) {
+  const opts = SIZE_OPCIONES.map(n => '<option>' + n + '</option>').join('');
+  return '<span class="size-ctrl no-print">' +
+    '<button type="button" onclick="cambiarTexto(\'' + clave + '\',-1)" title="Reducir letra">−</button>' +
+    '<select id="size-' + clave + '" onchange="setTexto(\'' + clave + '\',parseInt(this.value))">' + opts + '</select>' +
+    '<button type="button" onclick="cambiarTexto(\'' + clave + '\',1)" title="Aumentar letra">+</button>' +
+  '</span>';
+}
+
+// Reconstruye la hoja de estilos con los tamaños elegidos y refleja el valor en cada selector.
+function aplicarEstilosTamano() {
+  const sizes = getSizes();
+  const claves = ['mision', 'tareas'];
+  for (let t = 0; t < tareas.length; t++) claves.push('mod' + t);
+
+  let css = '';
+  claves.forEach(clave => {
+    const sel = selectorDe(clave);
+    if (sizes[clave] && sel) css += sel + '{font-size:' + sizes[clave] + 'px !important;}\n';
+    const selEl = document.getElementById('size-' + clave);
+    if (selEl) selEl.value = sizes[clave] || defaultDe(clave);
+  });
+
+  let styleEl = document.getElementById('estilos-tamano');
+  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'estilos-tamano'; document.head.appendChild(styleEl); }
+  styleEl.textContent = css;
+}
+
 function setTexto(clave, px) {
   if (!SIZE_OPCIONES.includes(px)) return;
-  const el = document.getElementById(SIZE_TARGETS[clave]);
-  if (el) el.style.fontSize = px + 'px';
-  const sel = document.getElementById('size-' + clave);
-  if (sel) sel.value = px;
   const sizes = getSizes(); sizes[clave] = px;
   localStorage.setItem(SIZE_KEY, JSON.stringify(sizes));
+  aplicarEstilosTamano();
 }
 function cambiarTexto(clave, dir) {
-  const sel = document.getElementById('size-' + clave);
-  const actual = parseInt(sel.value);
+  const sizes = getSizes();
+  const actual = sizes[clave] || defaultDe(clave);
   const i = SIZE_OPCIONES.indexOf(actual);
   const next = SIZE_OPCIONES[Math.max(0, Math.min(SIZE_OPCIONES.length - 1, i + dir))];
   setTexto(clave, next);
-}
-function aplicarSizesGuardados() {
-  const sizes = getSizes();
-  Object.keys(SIZE_TARGETS).forEach(clave => {
-    const px = sizes[clave] || 10;   // 10px = tamaño por defecto de la misión
-    setTexto(clave, px);
-  });
 }
 
 // ─── PEGAR COMO TEXTO PLANO (mantiene la fuente Times New Roman de la página) ────
@@ -1018,7 +1052,7 @@ document.addEventListener('paste', function(e) {
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 renderHead();
 renderBody();
-aplicarSizesGuardados();
+aplicarEstilosTamano();
 </script>
 
 
