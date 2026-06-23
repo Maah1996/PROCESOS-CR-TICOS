@@ -1,6 +1,10 @@
 <!DOCTYPE html>
 <!-- saved from url=(0045)https://maah1996.github.io/PROCESOS-CR-TICOS/ -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!-- Evita que el navegador guarde en caché: siempre carga la última versión publicada -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Análisis de Procesos Críticos</title>
@@ -24,6 +28,12 @@
   .hl-unidad { text-align: center; font-size: 11px; outline: none; cursor: text; }
   .hl-unidad:hover { background: #f0f4ff; }
   .mision-label { font-weight: bold; text-align: center; background: #dce6f1; }
+  .mision-label { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 3px 4px; }
+  /* Control de tamaño de letra por bloque (modelo tipo Word) */
+  .size-ctrl { display: inline-flex; align-items: center; gap: 2px; }
+  .size-ctrl button { width: 16px; height: 16px; padding: 0; border: 1px solid #9bb; background: #fff; color: #333; font-weight: bold; font-size: 11px; line-height: 1; cursor: pointer; border-radius: 2px; }
+  .size-ctrl button:hover { background: #eef4ff; }
+  .size-ctrl select { font-size: 10px; padding: 0 1px; border: 1px solid #9bb; border-radius: 2px; cursor: pointer; }
   .mision-text  { font-size: 10px; padding: 8px; text-align: justify; outline: none; cursor: text; }
   .mision-text:hover { background: #f9f9ff; }
 
@@ -105,13 +115,6 @@
   .btn-db { background: #2c3e50; color: white; }
   .btn-db:hover { background: #1a252f; }
 
-  /* Control de tamaño de letra (zoom) */
-  .zoom-ctrl { display: flex; align-items: center; gap: 4px; border-left: 1px solid #ccc; padding-left: 10px; }
-  .zoom-lbl { font-size: 11px; font-weight: bold; color: #555; }
-  .btn-zoom { background: #607d8b; color: white; padding: 6px 10px; min-width: 34px; }
-  .btn-zoom:hover { background: #455a64; }
-  .zoom-val { font-size: 11px; font-weight: bold; min-width: 38px; text-align: center; color: #333; }
-
   /* DB Panel */
   .db-panel { display: none; background: #f8f8f8; border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
   .db-panel.open { display: block; }
@@ -145,7 +148,7 @@
   @media print {
     body { background: white; }
     .page { box-shadow: none; margin: 0; padding: 10px; }
-    .btn-bar, .config-panel { display: none !important; }
+    .btn-bar, .config-panel, .no-print { display: none !important; }
   }
 </style>
 </head>
@@ -161,13 +164,6 @@
       <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
-      <div class="zoom-ctrl">
-        <span class="zoom-lbl">Letra:</span>
-        <button class="btn btn-zoom" onclick="cambiarZoom(-10)" title="Reducir tamaño">A−</button>
-        <span id="zoomVal" class="zoom-val">100%</span>
-        <button class="btn btn-zoom" onclick="cambiarZoom(10)" title="Aumentar tamaño">A+</button>
-        <button class="btn btn-zoom" onclick="resetZoom()" title="Tamaño normal">↺</button>
-      </div>
     </div>
     <div id="summary">
     <div class="summary-card"><div class="val val-total">7</div><div class="lbl">Procesos Totales</div></div>
@@ -208,7 +204,16 @@
           <tr><td class="hl-inst" id="h-inst">EJÉRCITO DE CHILE</td></tr>
           <tr><td class="hl-div" id="h-div">V DIVISIÓN</td></tr>
           <tr><td class="hl-unidad" id="h-unidad" contenteditable="true" title="Haga clic para editar la unidad">Comandancia en Jefe</td></tr>
-          <tr><td class="mision-label">MISIÓN</td></tr>
+          <tr><td class="mision-label">
+            <span>MISIÓN</span>
+            <span class="size-ctrl no-print">
+              <button onclick="cambiarTexto('mision',-1)" title="Reducir letra">−</button>
+              <select id="size-mision" onchange="setTexto('mision',parseInt(this.value))">
+                <option>8</option><option>10</option><option>12</option><option>13</option><option>14</option><option>16</option><option>18</option>
+              </select>
+              <button onclick="cambiarTexto('mision',1)" title="Aumentar letra">+</button>
+            </span>
+          </td></tr>
           <tr><td class="mision-text" id="h-mision" contenteditable="true" title="Haga clic para editar la misión">Al mando del CJ V DE y Estado Mayor del Cuartel General, desarrollar durante las etapas de preparación y conducción, actividades inherentes a la agenda de la División, relacionadas con procesos de planificación y ejecución en MO y MOTOUU, que le corresponda realizar a sus unidades subordinadas en su AOR, a través de una organización y funcionamiento eficaz y eficiente, que permita un trabajo funcional entre distintas organizaciones internas, así como tareas que disponga el ES.</td></tr>
         </tbody>
       </table>
@@ -957,18 +962,39 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ─── TAMAÑO DE LETRA (ZOOM) ────────────────────────────────────────────────────
-const ZOOM_KEY = 'procesos_criticos_zoom';
-let zoomLevel = parseInt(localStorage.getItem(ZOOM_KEY)) || 100;
+// ─── TAMAÑO DE LETRA POR BLOQUE ──────────────────────────────────────────────────
+// Tamaños disponibles (px) y el elemento que controla cada clave.
+const SIZE_OPCIONES = [8, 10, 12, 13, 14, 16, 18];
+const SIZE_TARGETS = { mision: 'h-mision' };   // se agregarán más bloques cuando se pidan
+const SIZE_KEY = 'procesos_criticos_sizes';
 
-function aplicarZoom() {
-  zoomLevel = Math.max(60, Math.min(200, zoomLevel));
-  document.querySelector('.page').style.zoom = (zoomLevel / 100);
-  document.getElementById('zoomVal').textContent = zoomLevel + '%';
-  localStorage.setItem(ZOOM_KEY, zoomLevel);
+function getSizes() {
+  try { return JSON.parse(localStorage.getItem(SIZE_KEY)) || {}; }
+  catch(e) { return {}; }
 }
-function cambiarZoom(delta) { zoomLevel += delta; aplicarZoom(); }
-function resetZoom() { zoomLevel = 100; aplicarZoom(); }
+function setTexto(clave, px) {
+  if (!SIZE_OPCIONES.includes(px)) return;
+  const el = document.getElementById(SIZE_TARGETS[clave]);
+  if (el) el.style.fontSize = px + 'px';
+  const sel = document.getElementById('size-' + clave);
+  if (sel) sel.value = px;
+  const sizes = getSizes(); sizes[clave] = px;
+  localStorage.setItem(SIZE_KEY, JSON.stringify(sizes));
+}
+function cambiarTexto(clave, dir) {
+  const sel = document.getElementById('size-' + clave);
+  const actual = parseInt(sel.value);
+  const i = SIZE_OPCIONES.indexOf(actual);
+  const next = SIZE_OPCIONES[Math.max(0, Math.min(SIZE_OPCIONES.length - 1, i + dir))];
+  setTexto(clave, next);
+}
+function aplicarSizesGuardados() {
+  const sizes = getSizes();
+  Object.keys(SIZE_TARGETS).forEach(clave => {
+    const px = sizes[clave] || 10;   // 10px = tamaño por defecto de la misión
+    setTexto(clave, px);
+  });
+}
 
 // ─── PEGAR COMO TEXTO PLANO (mantiene la fuente Times New Roman de la página) ────
 document.addEventListener('paste', function(e) {
@@ -982,7 +1008,7 @@ document.addEventListener('paste', function(e) {
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 renderHead();
 renderBody();
-aplicarZoom();
+aplicarSizesGuardados();
 </script>
 
 
