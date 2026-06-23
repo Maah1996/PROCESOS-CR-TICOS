@@ -581,7 +581,7 @@ function renderHead() {
         <button onclick="addTarea()" style="font-size:7px;padding:1px 4px;background:#27ae60;color:white;border:none;border-radius:3px;cursor:pointer;">+ Módulo</button>
         <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
       </div>` : ''}
-      <div contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:left;">${escapeHtml(tareas[t].text)}</div>
+      <div contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent" style="outline:none;text-align:justify;">${escapeHtml(tareas[t].text)}</div>
       <div class="no-print" style="display:flex;gap:8px;justify-content:flex-end;margin-top:3px;">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</div>
     </th>`;
   }
