@@ -607,6 +607,7 @@ function renderHead() {
           <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
         </div>` : ''}
         <div class="mod-texto" contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(tareas[t].text)}</div>
+        <div class="no-print mod-ctrls">${colapsable(ctrlTamano('modtext' + t, 'Texto') + ctrlTamano('modnum' + t, 'N°'))}</div>
       </div>
     </th>`;
   }
@@ -1123,6 +1124,7 @@ function colapsable(innerHtml) {
 function aplicarEstilosTamano() {
   const sizes = getSizes();
   const claves = ['mision', 'tareas'];
+  for (let t = 0; t < tareas.length; t++) { claves.push('modtext' + t); claves.push('modnum' + t); }
 
   let css = '';
   claves.forEach(clave => {
