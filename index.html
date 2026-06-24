@@ -90,8 +90,10 @@
   td.proceso-name { position:sticky; left:113px; background:white; z-index:2; }
 
   /* UNIDAD, CÓDIGO y TAREAS FUNDAMENTALES: siempre en MAYÚSCULA (al escribir o pegar) */
-  td.col-unidad, td.col-codigo, td.proceso-name { text-transform: uppercase; }
+  td.col-unidad, td.col-codigo, td.proceso-name { text-transform: uppercase; cursor: text; }
   td.col-unidad:hover, td.col-codigo:hover, td.proceso-name:hover { background:#f0f4ff; }
+  /* Sin recuadro negro al editar: edición natural, sin contorno de foco */
+  [contenteditable]:focus { outline: none; }
 
   /* Score cells */
   td.score-input { padding: 0; width: 26px; min-width: 26px; max-width: 26px; }
