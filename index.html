@@ -489,9 +489,11 @@ rows[0].scores[0] = [2,2,2,2,2,2,2,2];
 
 // ─── MÓDULO (TAREA) MANAGEMENT ─────────────────────────────────────────────────
 function addTarea() {
-  const refCols = tareas.length > 0 ? tareas[tareas.length - 1].subCols.map((s, i) => ROMAN[i] || String(i+1)) : ['I'];
+  // El módulo nuevo hereda las MISMAS columnas del módulo anterior (incluye nombres
+  // personalizados como "DICE"); copia por valor para que sean independientes.
+  const refCols = tareas.length > 0 ? tareas[tareas.length - 1].subCols.slice() : ['I'];
   const n = refCols.length;
-  tareas.push({ text: 'Nueva Tarea Fundamental ' + (tareas.length + 1), subCols: refCols.slice() });
+  tareas.push({ text: 'Nueva Tarea Fundamental ' + (tareas.length + 1), subCols: refCols });
   rows.forEach(r => { r.scores.push(Array(n).fill(null)); r.compredi.push(null); });
   renderHead(); renderBody(); autoguardar();
 }
