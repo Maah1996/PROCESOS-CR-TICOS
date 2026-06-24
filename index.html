@@ -927,7 +927,9 @@ function clearCell(ri, t, si) {
   }
 }
 
-// ─── SELECCIÓN CON ARRASTRE (selecciona en amarillo, Suprimir borra) ───────────
+// ─── SELECCIÓN RECTANGULAR CON ARRASTRE (goma elástica; Suprimir borra) ─────────
+// Arrastra de una celda a otra: selecciona TODO el rectángulo de celdas de puntaje,
+// en cualquier fila, columna y módulo de la página.
 let isDragging = false;
 let dragPending = false;
 let dragStartX = 0, dragStartY = 0;
@@ -938,10 +940,26 @@ function clearSelection() {
   selectedInputs = [];
 }
 
+// Marca como seleccionadas todas las celdas de puntaje dentro del rectángulo dado (px viewport).
+function seleccionarEnRectangulo(x1, y1, x2, y2) {
+  const rx1 = Math.min(x1, x2), rx2 = Math.max(x1, x2);
+  const ry1 = Math.min(y1, y2), ry2 = Math.max(y1, y2);
+  clearSelection();
+  document.querySelectorAll('.score-drag').forEach(inp => {
+    const r = inp.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (cx >= rx1 && cx <= rx2 && cy >= ry1 && cy <= ry2) {
+      selectedInputs.push(inp);
+      inp.closest('td').classList.add('selected');
+    }
+  });
+}
+
 document.addEventListener('mousedown', function(e) {
-  if (e.target.closest('.score-drag')) {
+  if (e.target.closest('.score-input')) {
     clearSelection();
     dragPending = true;
+    isDragging = false;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
   } else {
@@ -952,20 +970,17 @@ document.addEventListener('mousemove', function(e) {
   if (!dragPending) return;
   if (!isDragging && (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4)) {
     isDragging = true;
+    document.body.style.userSelect = 'none';        // evita seleccionar texto al arrastrar
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
   if (!isDragging) return;
-  // Usar elementFromPoint para detectar la celda bajo el cursor con precisión
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  if (!el) return;
-  const inp = el.classList.contains('score-drag') ? el : el.closest('.score-drag');
-  if (inp && !selectedInputs.includes(inp)) {
-    selectedInputs.push(inp);
-    inp.closest('td').classList.add('selected');
-  }
+  e.preventDefault();
+  seleccionarEnRectangulo(dragStartX, dragStartY, e.clientX, e.clientY);
 });
 document.addEventListener('mouseup', function() {
   isDragging = false;
   dragPending = false;
+  document.body.style.userSelect = '';
 });
 document.addEventListener('keydown', function(e) {
   if ((e.key === 'Delete' || e.key === 'Backspace') && selectedInputs.length > 0) {
