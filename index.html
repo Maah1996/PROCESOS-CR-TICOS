@@ -71,7 +71,11 @@
   /* Wrapper flex para alinear los controles de tamaño al fondo de cada módulo */
   .th-tarea-inner { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
   .th-tarea-inner .mod-texto { font-weight: normal; text-align: justify; text-align-last: center; }
-  .mod-ctrls { margin-top: auto; padding-top: 4px; }
+  .mod-ctrls { margin-top: auto; padding-top: 4px; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+  .size-toggle { font-size: 9px; font-weight: bold; padding: 1px 6px; border: 1px solid #9bb; background: #fff; border-radius: 3px; cursor: pointer; line-height: 1.4; }
+  .size-toggle:hover { background: #eef4ff; }
+  .mod-ctrls .size-panel { display: none; gap: 8px; }
+  .mod-ctrls.abierto .size-panel { display: inline-flex; }
   .th-fixed { background: #dce6f1; font-weight: bold; font-size: 8px; }
   .th-tot { background: #ffd966; font-weight: bold; }
   .th-nivel { background: #a9d18e; font-weight: bold; font-size: 8px; }
@@ -596,7 +600,10 @@ function renderHead() {
           <button onclick="delTarea()" style="font-size:7px;padding:1px 4px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">− Módulo</button>
         </div>` : ''}
         <div class="mod-texto" contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(tareas[t].text)}</div>
-        <div class="no-print mod-ctrls" style="display:flex;gap:8px;justify-content:flex-end;">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</div>
+        <div class="no-print mod-ctrls">
+          <button type="button" class="size-toggle" onclick="this.closest('.mod-ctrls').classList.toggle('abierto')" title="Ajustar tamaño de letra">Aa ▾</button>
+          <span class="size-panel">${ctrlTamano('modtext' + t, 'Texto')}${ctrlTamano('modnum' + t, 'N°')}</span>
+        </div>
       </div>
     </th>`;
   }
