@@ -638,20 +638,22 @@ function renderBody() {
       tareas[t].subCols.forEach((s, si) => {
         const val = row.scores[t][si];
         tr += `<td class="score-input${val!==null?' filled':''}">
-          <input type="text" maxlength="1" value="${val===null?'':val}"
+          <input type="text" value="${val===null?'':val}"
             class="score-drag" data-ri="${ri}" data-t="${t}" data-si="${si}"
-            oninput="this.value=this.value.replace(/[^0-3]/g,'');this.closest('td').classList.toggle('filled',this.value!=='')"
+            onfocus="this.select()"
+            oninput="this.value=this.value.replace(/[^0-3]/g,'').slice(-1);this.closest('td').classList.toggle('filled',this.value!=='')"
             onblur="setScore(${ri},${t},${si},this.value)"
-            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setScore(${ri},${t},${si},'')}"
+            onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setScore(${ri},${t},${si},'')}else if(/^[0-3]$/.test(event.key)){this.value=event.key;this.closest('td').classList.add('filled');setScore(${ri},${t},${si},event.key);event.preventDefault()}else if(event.key.length===1&&!event.ctrlKey&&!event.metaKey){event.preventDefault()}"
           >
         </td>`;
       });
       tr += `<td class="score-input${cp!==null?' filled':''}">
-        <input type="text" maxlength="1" value="${cp===null?'':cp}"
+        <input type="text" value="${cp===null?'':cp}"
           class="score-drag" data-ri="${ri}" data-t="${t}" data-si="cp"
-          oninput="this.value=this.value.replace(/[^0-3]/g,'');this.closest('td').classList.toggle('filled',this.value!=='')"
+          onfocus="this.select()"
+          oninput="this.value=this.value.replace(/[^0-3]/g,'').slice(-1);this.closest('td').classList.toggle('filled',this.value!=='')"
           onblur="setCompred(${ri},${t},this.value)"
-          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setCompred(${ri},${t},'')}"
+          onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setCompred(${ri},${t},'')}else if(/^[0-3]$/.test(event.key)){this.value=event.key;this.closest('td').classList.add('filled');setCompred(${ri},${t},event.key);event.preventDefault()}else if(event.key.length===1&&!event.ctrlKey&&!event.metaKey){event.preventDefault()}"
         >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
@@ -982,18 +984,82 @@ document.addEventListener('mouseup', function() {
   dragPending = false;
   document.body.style.userSelect = '';
 });
+// ─── LLENAR / COPIAR / PEGAR RANGOS DE CELDAS ────────────────────────────────────
+let copiedValues = null;   // matriz 2D de strings copiada
+
+// Matriz de inputs por fila (orden visual izq→der = orden del DOM)
+function getGrid() {
+  const grid = [];
+  for (let ri = 0; ri < rows.length; ri++) {
+    grid[ri] = [...document.querySelectorAll('.score-drag[data-ri="' + ri + '"]')];
+  }
+  return grid;
+}
+// Escribe un valor en una celda y actualiza el modelo + cálculos
+function aplicarValorCelda(inp, val) {
+  const ri = +inp.dataset.ri, t = +inp.dataset.t, si = inp.dataset.si;
+  inp.value = val;
+  inp.closest('td').classList.toggle('filled', val !== '');
+  if (si === 'cp') setCompred(ri, t, val); else setScore(ri, t, +si, val);
+}
+// Llena TODAS las celdas seleccionadas con el mismo valor
+function llenarSeleccion(val) {
+  selectedInputs.forEach(inp => aplicarValorCelda(inp, val));
+}
+// Copia los valores de la selección como matriz rectangular
+function copiarSeleccion() {
+  if (!selectedInputs.length) return;
+  const grid = getGrid();
+  const coords = selectedInputs.map(inp => ({ ri: +inp.dataset.ri, c: grid[+inp.dataset.ri].indexOf(inp) }));
+  const rmin = Math.min(...coords.map(o => o.ri)), rmax = Math.max(...coords.map(o => o.ri));
+  const cmin = Math.min(...coords.map(o => o.c)), cmax = Math.max(...coords.map(o => o.c));
+  copiedValues = [];
+  for (let r = rmin; r <= rmax; r++) {
+    const fila = [];
+    for (let c = cmin; c <= cmax; c++) { const inp = grid[r] && grid[r][c]; fila.push(inp ? inp.value : ''); }
+    copiedValues.push(fila);
+  }
+}
+// Pega la matriz copiada a partir de la celda ancla (la enfocada o la esquina sup-izq de la selección)
+function pegarRango() {
+  if (!copiedValues) return;
+  const grid = getGrid();
+  let anchor = null;
+  const af = document.activeElement;
+  if (af && af.classList && af.classList.contains('score-drag')) anchor = af;
+  else if (selectedInputs.length) {
+    let best = null;
+    selectedInputs.forEach(inp => { const ri = +inp.dataset.ri, c = grid[ri].indexOf(inp); if (!best || ri < best.ri || (ri === best.ri && c < best.c)) best = { ri, c, inp }; });
+    anchor = best.inp;
+  }
+  if (!anchor) return;
+  const ar = +anchor.dataset.ri, ac = grid[ar].indexOf(anchor);
+  clearSelection();
+  copiedValues.forEach((fila, dr) => fila.forEach((val, dc) => {
+    const inp = grid[ar + dr] && grid[ar + dr][ac + dc];
+    if (inp) { aplicarValorCelda(inp, val); inp.closest('td').classList.add('selected'); selectedInputs.push(inp); }
+  }));
+}
+
 document.addEventListener('keydown', function(e) {
-  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedInputs.length > 0) {
+  if (selectedInputs.length === 0) return;
+  // Suprimir / Retroceso: borra toda la selección
+  if (e.key === 'Delete' || e.key === 'Backspace') {
     e.preventDefault();
     selectedInputs.forEach(inp => {
       const ri = +inp.dataset.ri, t = +inp.dataset.t, si = inp.dataset.si;
       clearCell(ri, t, si === 'cp' ? 'cp' : +si);
       inp.value = '';
-      inp.closest('td').classList.remove('filled', 'selected');
+      inp.closest('td').classList.remove('filled');
       updateCalcs(ri);
     });
-    selectedInputs = [];
+    return;
   }
+  // Copiar / Pegar rango
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copiarSeleccion(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pegarRango(); return; }
+  // Escribir un dígito 0-3: llena TODAS las celdas seleccionadas
+  if (/^[0-3]$/.test(e.key)) { e.preventDefault(); llenarSeleccion(e.key); return; }
 });
 
 // ─── ENTER BAJA A LA MISMA COLUMNA, FILA SIGUIENTE ───────────────────────────
