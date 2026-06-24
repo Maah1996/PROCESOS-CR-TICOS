@@ -762,13 +762,6 @@ function applyHeaderConfig(cfg) {
   updateHeader();
 }
 
-function resetRows() {
-  rows = [1, 2, 3].map(n => ({
-    n, unidad: '', codigo: '', proceso: '',
-    scores: newScores(), compredi: newCompredi()
-  }));
-}
-
 function guardarRegistro() {
   const nombre = document.getElementById('h-unidad').textContent.trim() || 'Sin nombre';
   const db = getDB();
@@ -783,11 +776,7 @@ function guardarRegistro() {
   db.push(registro);
   saveDB(db);
 
-  // Resetear a 3 filas vacías tras guardar
-  resetRows();
-  renderBody();
-  autoguardar();
-
+  // NO se borra la pantalla: el trabajo queda a la vista para seguir editando.
   const btn = document.querySelector('.btn-save');
   btn.textContent = '✅ Guardado';
   setTimeout(() => btn.textContent = '💾 Guardar', 2000);
