@@ -71,7 +71,12 @@
   /* Wrapper flex para alinear los controles de tamaño al fondo de cada módulo */
   .th-tarea-inner { display: flex; flex-direction: column; height: 100%; min-height: 100%; }
   .th-tarea-inner .mod-texto { font-weight: normal; text-align: justify; text-align-last: center; }
-  .mod-ctrls { margin-top: auto; padding-top: 4px; display: flex; align-items: center; justify-content: flex-end; }
+  .mod-ctrls { margin-top: auto; padding-top: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .col-acciones { display: inline-flex; align-items: center; gap: 3px; }
+  .col-lbl { font-size: 8px; font-weight: bold; color: #333; }
+  .colmod-add, .colmod-del { font-size: 11px; font-weight: bold; line-height: 1; padding: 1px 6px; border: none; border-radius: 3px; color: white; cursor: pointer; }
+  .colmod-add { background: #27ae60; } .colmod-add:hover { background: #1e8449; }
+  .colmod-del { background: #e74c3c; } .colmod-del:hover { background: #c0392b; }
   /* Pestaña colapsable "Aa ▾" genérica (misión, tareas y módulos) */
   .size-collapse { display: inline-flex; align-items: center; gap: 6px; }
   .size-toggle { font-size: 9px; font-weight: bold; padding: 1px 6px; border: 1px solid #9bb; background: #fff; border-radius: 3px; cursor: pointer; line-height: 1.4; }
@@ -141,18 +146,8 @@
   .btn-save:hover { background: #0e7862; }
   .btn-db { background: #2c3e50; color: white; }
   .btn-db:hover { background: #1a252f; }
-  .btn-col { background: #2e8b57; color: white; }
-  .btn-col:hover { background: #20663f; }
-  .btn-col-del { background: #c0392b; color: white; }
-  .btn-col-del:hover { background: #922b21; }
   /* Resalta la cabecera de la columna seleccionada */
   .th-sub-num.col-activa { background: #ffe08a !important; outline: 2px solid #e6a800; outline-offset: -2px; }
-  /* Botones +/- por columna (en la cabecera) */
-  .col-btn { position: absolute; width: 11px; height: 11px; padding: 0; border: none; border-radius: 2px; color: white; font-size: 10px; font-weight: bold; line-height: 11px; cursor: pointer; z-index: 3; }
-  .col-add { bottom: 1px; left: 1px; background: #27ae60; }
-  .col-add:hover { background: #1e8449; }
-  .col-del { top: 1px; right: 1px; background: #e74c3c; }
-  .col-del:hover { background: #c0392b; }
 
   /* DB Panel */
   .db-panel { display: none; background: #f8f8f8; border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
@@ -200,8 +195,6 @@
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
       <button class="btn btn-add" onclick="addRow()">+ Agregar Proceso</button>
       <button class="btn btn-del" onclick="delLastRow()">− Eliminar Último</button>
-      <button class="btn btn-col" onclick="agregarColumnaActiva()" title="Agrega una columna a la DERECHA de la columna seleccionada">+ Columna</button>
-      <button class="btn btn-col-del" onclick="eliminarColumnaActiva()" title="Elimina la columna seleccionada">− Columna</button>
       <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
@@ -559,15 +552,12 @@ function eliminarColumna(t, si) {
   colActiva = { t, si: Math.max(0, si - 1) };
   renderHead(); renderBody(); autoguardar();
 }
-// Versiones que usan la columna seleccionada (botones de la barra superior)
-function agregarColumnaActiva() {
-  if (!tareas[colActiva.t]) return alert('Primero haz clic en una columna.');
-  insertarColumna(colActiva.t, colActiva.si);
+// Columna objetivo del módulo t: la seleccionada si pertenece a este módulo, si no, la última
+function colObjetivoModulo(t) {
+  return (colActiva.t === t) ? colActiva.si : tareas[t].subCols.length - 1;
 }
-function eliminarColumnaActiva() {
-  if (!tareas[colActiva.t]) return alert('Primero haz clic en una columna.');
-  eliminarColumna(colActiva.t, colActiva.si);
-}
+function addColModulo(t) { insertarColumna(t, colObjetivoModulo(t)); }
+function delColModulo(t) { eliminarColumna(t, colObjetivoModulo(t)); }
 
 // ─── DATE ──────────────────────────────────────────────────────────────────────
 function getDateStr() {
@@ -646,7 +636,10 @@ function renderHead() {
           <button onclick="delTarea()" title="Quitar módulo" style="font-size:12px;font-weight:bold;line-height:1;padding:2px 8px;background:#e74c3c;color:white;border:none;border-radius:3px;cursor:pointer;">−</button>
         </div>` : ''}
         <div class="mod-texto" contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(tareas[t].text)}</div>
-        <div class="no-print mod-ctrls">${colapsable(ctrlTamano('modtext' + t, 'Texto') + ctrlTamano('modnum' + t, 'N°'))}</div>
+        <div class="no-print mod-ctrls">
+          <span class="col-acciones"><span class="col-lbl">Col</span><button type="button" class="colmod-add" onclick="addColModulo(${t})" title="Agregar columna a la derecha de la seleccionada">+</button><button type="button" class="colmod-del" onclick="delColModulo(${t})" title="Eliminar la columna seleccionada">−</button></span>
+          ${colapsable(ctrlTamano('modtext' + t, 'Texto') + ctrlTamano('modnum' + t, 'N°'))}
+        </div>
       </div>
     </th>`;
   }
@@ -659,8 +652,6 @@ function renderHead() {
   for(let t=0; t<tareas.length; t++) {
     tareas[t].subCols.forEach((s, si) => {
       r2 += `<th class="th-sub-num" data-colhead="${t}-${si}" onclick="setColActiva(${t},${si})" title="Clic para seleccionar esta columna" style="position:relative;cursor:pointer;">
-        <button type="button" class="col-btn col-add no-print" onclick="event.stopPropagation();insertarColumna(${t},${si})" title="Agregar columna a la derecha">+</button>
-        <button type="button" class="col-btn col-del no-print" onclick="event.stopPropagation();eliminarColumna(${t},${si})" title="Eliminar esta columna">−</button>
         <div contenteditable="true" onfocus="setColActiva(${t},${si})" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}';autoguardar()" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
       </th>`;
     });
