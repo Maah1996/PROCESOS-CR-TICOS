@@ -147,6 +147,12 @@
   .btn-col-del:hover { background: #922b21; }
   /* Resalta la cabecera de la columna seleccionada */
   .th-sub-num.col-activa { background: #ffe08a !important; outline: 2px solid #e6a800; outline-offset: -2px; }
+  /* Botones +/- por columna (en la cabecera) */
+  .col-btn { position: absolute; width: 11px; height: 11px; padding: 0; border: none; border-radius: 2px; color: white; font-size: 10px; font-weight: bold; line-height: 11px; cursor: pointer; z-index: 3; }
+  .col-add { bottom: 1px; left: 1px; background: #27ae60; }
+  .col-add:hover { background: #1e8449; }
+  .col-del { top: 1px; right: 1px; background: #e74c3c; }
+  .col-del:hover { background: #c0392b; }
 
   /* DB Panel */
   .db-panel { display: none; background: #f8f8f8; border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
@@ -536,24 +542,31 @@ function marcarColumnaActiva() {
   const th = document.querySelector('[data-colhead="' + colActiva.t + '-' + colActiva.si + '"]');
   if (th) th.classList.add('col-activa');
 }
-function agregarColumnaActiva() {
-  const { t, si } = colActiva;
-  if (!tareas[t]) return alert('Primero haz clic en una columna.');
-  const pos = si + 1;   // a la derecha de la seleccionada
+// Inserta una columna a la DERECHA de la columna (t, si)
+function insertarColumna(t, si) {
+  const pos = si + 1;
   const nombre = ROMAN[tareas[t].subCols.length] || String(tareas[t].subCols.length + 1);
   tareas[t].subCols.splice(pos, 0, nombre);
   rows.forEach(r => r.scores[t].splice(pos, 0, null));
   colActiva = { t, si: pos };
   renderHead(); renderBody(); autoguardar();
 }
-function eliminarColumnaActiva() {
-  const { t, si } = colActiva;
-  if (!tareas[t]) return alert('Primero haz clic en una columna.');
+// Elimina la columna (t, si)
+function eliminarColumna(t, si) {
   if (tareas[t].subCols.length <= 1) return alert('Debe quedar al menos 1 columna en el módulo.');
   tareas[t].subCols.splice(si, 1);
   rows.forEach(r => r.scores[t].splice(si, 1));
   colActiva = { t, si: Math.max(0, si - 1) };
   renderHead(); renderBody(); autoguardar();
+}
+// Versiones que usan la columna seleccionada (botones de la barra superior)
+function agregarColumnaActiva() {
+  if (!tareas[colActiva.t]) return alert('Primero haz clic en una columna.');
+  insertarColumna(colActiva.t, colActiva.si);
+}
+function eliminarColumnaActiva() {
+  if (!tareas[colActiva.t]) return alert('Primero haz clic en una columna.');
+  eliminarColumna(colActiva.t, colActiva.si);
 }
 
 // ─── DATE ──────────────────────────────────────────────────────────────────────
@@ -646,6 +659,8 @@ function renderHead() {
   for(let t=0; t<tareas.length; t++) {
     tareas[t].subCols.forEach((s, si) => {
       r2 += `<th class="th-sub-num" data-colhead="${t}-${si}" onclick="setColActiva(${t},${si})" title="Clic para seleccionar esta columna" style="position:relative;cursor:pointer;">
+        <button type="button" class="col-btn col-add no-print" onclick="event.stopPropagation();insertarColumna(${t},${si})" title="Agregar columna a la derecha">+</button>
+        <button type="button" class="col-btn col-del no-print" onclick="event.stopPropagation();eliminarColumna(${t},${si})" title="Eliminar esta columna">−</button>
         <div contenteditable="true" onfocus="setColActiva(${t},${si})" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}';autoguardar()" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
       </th>`;
     });
