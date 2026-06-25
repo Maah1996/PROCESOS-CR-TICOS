@@ -481,6 +481,14 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// Títulos editables de las columnas fijas (encabezados)
+let titulos = {
+  n: 'N°',
+  unidad: 'UNIDAD',
+  codigo: 'CÓDIGO DEL INVENTARIO DE PROCESOS',
+  tareas: 'TAREAS FUNDAMENTALES'
+};
+
 // Cada tarea es { text, subCols }
 let tareas = [
   { text: "Disponer, revisar y aprobar la elaboración de documentación directiva y ejecutiva de las funciones primarias del mando.", subCols: ['I','II','III','IV','V','VI','VII','VIII'] }
@@ -622,10 +630,10 @@ function renderHead() {
 
   // Row 1: fixed cols + tarea headers
   let r1 = '<tr>';
-  r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;">N°</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;">UNIDAD</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;">CÓDIGO DEL INVENTARIO DE PROCESOS</th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;">TAREAS FUNDAMENTALES<div class="no-print" style="margin-top:4px;">${colapsable(ctrlTamano('tareas'))}</div></th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;"><span contenteditable="true" onblur="titulos.n=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.n)}</span></th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;"><span contenteditable="true" onblur="titulos.unidad=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.unidad)}</span></th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;"><span contenteditable="true" onblur="titulos.codigo=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.codigo)}</span></th>`;
+  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;"><span contenteditable="true" onblur="titulos.tareas=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.tareas)}</span><div class="no-print" style="margin-top:4px;">${colapsable(ctrlTamano('tareas', 'Datos') + ctrlTamano('encab', 'Títulos'))}</div></th>`;
   for(let t=0; t<tareas.length; t++) {
     const colSpan = tareas[t].subCols.length + 2;
     const isFirst = t === 0;
@@ -1121,12 +1129,14 @@ function getSizes() {
 function selectorDe(clave) {
   if (clave === 'mision') return '#h-mision';
   if (clave === 'tareas') return '.proceso-name';
+  if (clave === 'encab') return '.th-fixed > span[contenteditable]';   // títulos de las columnas fijas
   if (clave.startsWith('modtext')) return '[data-modtext="' + clave.slice(7) + '"]';   // párrafo de la tarea
   if (clave.startsWith('modnum'))  return '.score-input input[data-t="' + clave.slice(6) + '"]'; // números
   return null;
 }
 function defaultDe(clave) {                       // solo para mostrar en el selector
   if (clave === 'tareas') return 8;
+  if (clave === 'encab') return 8;
   if (clave.startsWith('modtext')) return 8;
   if (clave.startsWith('modnum')) return 10;
   return 10;                                      // misión
@@ -1154,7 +1164,7 @@ function colapsable(innerHtml) {
 // Reconstruye la hoja de estilos con los tamaños elegidos y refleja el valor en cada selector.
 function aplicarEstilosTamano() {
   const sizes = getSizes();
-  const claves = ['mision', 'tareas'];
+  const claves = ['mision', 'tareas', 'encab'];
   for (let t = 0; t < tareas.length; t++) { claves.push('modtext' + t); claves.push('modnum' + t); }
 
   let css = '';
@@ -1198,7 +1208,7 @@ document.addEventListener('paste', function(e) {
 const AUTOSAVE_KEY = 'procesos_criticos_autosave';
 function autoguardar() {
   try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig() }));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos }));
   } catch (e) {}
 }
 function restaurarAutoguardado() {
@@ -1209,6 +1219,7 @@ function restaurarAutoguardado() {
     if (est && Array.isArray(est.tareas) && Array.isArray(est.rows)) {
       tareas = est.tareas;
       rows = est.rows;
+      if (est.titulos) Object.assign(titulos, est.titulos);
       return est.header || null;
     }
   } catch (e) {}
