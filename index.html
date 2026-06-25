@@ -141,6 +141,12 @@
   .btn-save:hover { background: #0e7862; }
   .btn-db { background: #2c3e50; color: white; }
   .btn-db:hover { background: #1a252f; }
+  .btn-col { background: #2e8b57; color: white; }
+  .btn-col:hover { background: #20663f; }
+  .btn-col-del { background: #c0392b; color: white; }
+  .btn-col-del:hover { background: #922b21; }
+  /* Resalta la cabecera de la columna seleccionada */
+  .th-sub-num.col-activa { background: #ffe08a !important; outline: 2px solid #e6a800; outline-offset: -2px; }
 
   /* DB Panel */
   .db-panel { display: none; background: #f8f8f8; border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
@@ -188,6 +194,8 @@
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
       <button class="btn btn-add" onclick="addRow()">+ Agregar Proceso</button>
       <button class="btn btn-del" onclick="delLastRow()">− Eliminar Último</button>
+      <button class="btn btn-col" onclick="agregarColumnaActiva()" title="Agrega una columna a la DERECHA de la columna seleccionada">+ Columna</button>
+      <button class="btn btn-col-del" onclick="eliminarColumnaActiva()" title="Elimina la columna seleccionada">− Columna</button>
       <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
@@ -516,17 +524,35 @@ function delTarea() {
   renderHead(); renderBody(); autoguardar();
 }
 
-function addSubCol(ti) {
-  const next = ROMAN[tareas[ti].subCols.length] || (tareas[ti].subCols.length + 1).toString();
-  tareas[ti].subCols.push(next);
-  rows.forEach(r => r.scores[ti].push(null));
+// ─── COLUMNA ACTIVA (insertar a la derecha / eliminar la seleccionada) ───────────
+let colActiva = { t: 0, si: 0 };
+
+function setColActiva(t, si) {
+  colActiva = { t, si };
+  marcarColumnaActiva();
+}
+function marcarColumnaActiva() {
+  document.querySelectorAll('.th-sub-num.col-activa').forEach(e => e.classList.remove('col-activa'));
+  const th = document.querySelector('[data-colhead="' + colActiva.t + '-' + colActiva.si + '"]');
+  if (th) th.classList.add('col-activa');
+}
+function agregarColumnaActiva() {
+  const { t, si } = colActiva;
+  if (!tareas[t]) return alert('Primero haz clic en una columna.');
+  const pos = si + 1;   // a la derecha de la seleccionada
+  const nombre = ROMAN[tareas[t].subCols.length] || String(tareas[t].subCols.length + 1);
+  tareas[t].subCols.splice(pos, 0, nombre);
+  rows.forEach(r => r.scores[t].splice(pos, 0, null));
+  colActiva = { t, si: pos };
   renderHead(); renderBody(); autoguardar();
 }
-
-function delSubCol(ti) {
-  if (tareas[ti].subCols.length <= 1) return alert('Debe quedar al menos 1 columna.');
-  tareas[ti].subCols.pop();
-  rows.forEach(r => r.scores[ti].pop());
+function eliminarColumnaActiva() {
+  const { t, si } = colActiva;
+  if (!tareas[t]) return alert('Primero haz clic en una columna.');
+  if (tareas[t].subCols.length <= 1) return alert('Debe quedar al menos 1 columna en el módulo.');
+  tareas[t].subCols.splice(si, 1);
+  rows.forEach(r => r.scores[t].splice(si, 1));
+  colActiva = { t, si: Math.max(0, si - 1) };
   renderHead(); renderBody(); autoguardar();
 }
 
@@ -619,19 +645,18 @@ function renderHead() {
   let r2 = '<tr>';
   for(let t=0; t<tareas.length; t++) {
     tareas[t].subCols.forEach((s, si) => {
-      const isFirst = si === 0;
-      r2 += `<th class="th-sub-num" style="position:relative;">
-        <div contenteditable="true" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}';autoguardar()" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
-        ${isFirst ? `<button onclick="addSubCol(${t})" style="position:absolute;top:1px;left:1px;font-size:7px;padding:0 2px;background:#4472c4;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">+</button>` : ''}
+      r2 += `<th class="th-sub-num" data-colhead="${t}-${si}" onclick="setColActiva(${t},${si})" title="Clic para seleccionar esta columna" style="position:relative;cursor:pointer;">
+        <div contenteditable="true" onfocus="setColActiva(${t},${si})" onblur="tareas[${t}].subCols[${si}]=this.textContent.trim()||'${s}';autoguardar()" style="outline:none;min-width:10px;">${escapeHtml(s)}</div>
       </th>`;
     });
-    r2 += `<th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.<button onclick="delSubCol(${t})" style="position:absolute;top:1px;right:1px;font-size:7px;padding:0 2px;background:#e74c3c;color:white;border:none;border-radius:2px;cursor:pointer;line-height:11px;">−</button></th>`;
+    r2 += `<th class="th-sub-num" style="font-size:7px;position:relative;">COM.<br>PRED.</th>`;
     r2 += `<th class="th-tot">TOT</th>`;
   }
   r2 += '</tr>';
 
   newHead.innerHTML = r1 + r2;
   aplicarEstilosTamano();   // refleja tamaños guardados en los selectores recién creados
+  marcarColumnaActiva();    // re-resalta la columna seleccionada
 }
 
 function renderBody() {
@@ -653,7 +678,7 @@ function renderBody() {
         tr += `<td class="score-input${val!==null?' filled':''}">
           <input type="text" value="${val===null?'':val}"
             class="score-drag" data-ri="${ri}" data-t="${t}" data-si="${si}"
-            onfocus="this.select()"
+            onfocus="this.select();setColActiva(${t},${si})"
             oninput="this.value=this.value.replace(/[^0-3]/g,'').slice(-1);this.closest('td').classList.toggle('filled',this.value!=='')"
             onblur="setScore(${ri},${t},${si},this.value)"
             onkeydown="if(event.key==='Delete'||event.key==='Backspace'){this.value='';this.closest('td').classList.remove('filled');setScore(${ri},${t},${si},'')}else if(/^[0-3]$/.test(event.key)){this.value=event.key;this.closest('td').classList.add('filled');setScore(${ri},${t},${si},event.key);event.preventDefault()}else if(event.key.length===1&&!event.ctrlKey&&!event.metaKey){event.preventDefault()}"
