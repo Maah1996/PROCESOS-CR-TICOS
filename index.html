@@ -148,6 +148,9 @@
   .btn-db:hover { background: #1a252f; }
   /* Resalta la cabecera de la columna seleccionada */
   .th-sub-num.col-activa { background: #ffe08a !important; outline: 2px solid #e6a800; outline-offset: -2px; }
+  /* Tirador para redimensionar columnas fijas (borde derecho del encabezado) */
+  .col-resize { position: absolute; top: 0; right: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 7; }
+  .col-resize:hover { background: #4472c4; opacity: 0.5; }
 
   /* DB Panel */
   .db-panel { display: none; background: #f8f8f8; border: 1px solid #ccc; border-radius: 6px; padding: 15px; margin-bottom: 15px; }
@@ -489,6 +492,27 @@ let titulos = {
   tareas: 'TAREAS FUNDAMENTALES'
 };
 
+// Anchos (px) de las columnas fijas — redimensionables arrastrando el borde
+let anchos = { n: 22, unidad: 36, codigo: 55, tareas: 320 };
+
+// Aplica los anchos y recalcula las posiciones sticky (encabezado + cuerpo)
+function aplicarAnchos() {
+  const a = anchos;
+  const lefts = { n: 0, unidad: a.n, codigo: a.n + a.unidad, tareas: a.n + a.unidad + a.codigo };
+  [['cw-n', a.n], ['cw-unidad', a.unidad], ['cw-codigo', a.codigo], ['cw-tareas', a.tareas]].forEach(([id, w]) => {
+    const c = document.getElementById(id); if (c) c.style.width = w + 'px';
+  });
+  const regla = (sel, w, left) => sel + '{width:' + w + 'px !important;min-width:' + w + 'px !important;max-width:' + w + 'px !important;left:' + left + 'px !important;}\n';
+  let css = '';
+  css += regla('[data-fixcol="n"], td.col-n', a.n, lefts.n);
+  css += regla('[data-fixcol="unidad"], td.col-unidad', a.unidad, lefts.unidad);
+  css += regla('[data-fixcol="codigo"], td.col-codigo', a.codigo, lefts.codigo);
+  css += regla('[data-fixcol="tareas"], td.proceso-name', a.tareas, lefts.tareas);
+  let el = document.getElementById('estilos-anchos');
+  if (!el) { el = document.createElement('style'); el.id = 'estilos-anchos'; document.head.appendChild(el); }
+  el.textContent = css;
+}
+
 // Cada tarea es { text, subCols }
 let tareas = [
   { text: "Disponer, revisar y aprobar la elaboración de documentación directiva y ejecutiva de las funciones primarias del mando.", subCols: ['I','II','III','IV','V','VI','VII','VIII'] }
@@ -612,10 +636,10 @@ function calcNivel(row) {
 function renderHead() {
   // Colgroup con anchos fijos — garantiza que table-layout:fixed los respete
   let cg = '<colgroup>';
-  cg += '<col style="width:22px;">';   // N°
-  cg += '<col style="width:28px;">';   // UNIDAD
-  cg += '<col style="width:45px;">';   // CÓDIGO
-  cg += '<col style="width:320px;">';  // TAREAS FUNDAMENTALES
+  cg += `<col id="cw-n" style="width:${anchos.n}px;">`;            // N°
+  cg += `<col id="cw-unidad" style="width:${anchos.unidad}px;">`;  // UNIDAD
+  cg += `<col id="cw-codigo" style="width:${anchos.codigo}px;">`;  // CÓDIGO
+  cg += `<col id="cw-tareas" style="width:${anchos.tareas}px;">`;  // TAREAS FUNDAMENTALES
   for (let t = 0; t < tareas.length; t++) {
     tareas[t].subCols.forEach(() => cg += '<col style="width:26px;">');
     cg += '<col style="width:32px;">'; // COM.PRED.
@@ -630,10 +654,10 @@ function renderHead() {
 
   // Row 1: fixed cols + tarea headers
   let r1 = '<tr>';
-  r1 += `<th class="th-fixed" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;"><span contenteditable="true" onblur="titulos.n=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.n)}</span></th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;"><span contenteditable="true" onblur="titulos.unidad=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.unidad)}</span></th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;"><span contenteditable="true" onblur="titulos.codigo=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.codigo)}</span></th>`;
-  r1 += `<th class="th-fixed" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;"><span contenteditable="true" onblur="titulos.tareas=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.tareas)}</span><div class="no-print" style="margin-top:4px;">${colapsable(ctrlTamano('tareas', 'Datos') + ctrlTamano('encab', 'Títulos'))}</div></th>`;
+  r1 += `<th class="th-fixed" data-fixcol="n" rowspan="3" style="width:22px;min-width:22px;max-width:22px;overflow:hidden;position:sticky;left:0;z-index:6;"><span contenteditable="true" onblur="titulos.n=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.n)}</span><div class="col-resize no-print" data-col="n" title="Arrastra para ensanchar/achicar"></div></th>`;
+  r1 += `<th class="th-fixed" data-fixcol="unidad" rowspan="3" style="width:36px;min-width:36px;max-width:36px;word-wrap:break-word;white-space:normal;font-size:7px;overflow:hidden;position:sticky;left:22px;z-index:6;"><span contenteditable="true" onblur="titulos.unidad=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.unidad)}</span><div class="col-resize no-print" data-col="unidad" title="Arrastra para ensanchar/achicar"></div></th>`;
+  r1 += `<th class="th-fixed" data-fixcol="codigo" rowspan="3" style="width:55px;min-width:55px;max-width:55px;font-size:7px;overflow:hidden;position:sticky;left:58px;z-index:6;"><span contenteditable="true" onblur="titulos.codigo=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.codigo)}</span><div class="col-resize no-print" data-col="codigo" title="Arrastra para ensanchar/achicar"></div></th>`;
+  r1 += `<th class="th-fixed" data-fixcol="tareas" rowspan="3" style="width:320px;min-width:320px;max-width:320px;position:sticky;left:113px;z-index:6;"><span contenteditable="true" onblur="titulos.tareas=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(titulos.tareas)}</span><div class="no-print" style="margin-top:4px;">${colapsable(ctrlTamano('tareas', 'Datos') + ctrlTamano('encab', 'Títulos'))}</div><div class="col-resize no-print" data-col="tareas" title="Arrastra para ensanchar/achicar"></div></th>`;
   for(let t=0; t<tareas.length; t++) {
     const colSpan = tareas[t].subCols.length + 2;
     const isFirst = t === 0;
@@ -671,6 +695,7 @@ function renderHead() {
   newHead.innerHTML = r1 + r2;
   aplicarEstilosTamano();   // refleja tamaños guardados en los selectores recién creados
   marcarColumnaActiva();    // re-resalta la columna seleccionada
+  aplicarAnchos();          // aplica los anchos de columna guardados
 }
 
 function renderBody() {
@@ -970,6 +995,26 @@ function clearCell(ri, t, si) {
   }
 }
 
+// ─── REDIMENSIONAR COLUMNAS FIJAS (arrastrar el borde derecho) ───────────────────
+let resizeCol = null, resizeStartX = 0, resizeStartW = 0;
+document.addEventListener('mousedown', function(e) {
+  const h = e.target.closest('.col-resize');
+  if (!h) return;
+  e.preventDefault(); e.stopPropagation();
+  resizeCol = h.dataset.col;
+  resizeStartX = e.clientX;
+  resizeStartW = anchos[resizeCol];
+  document.body.style.userSelect = 'none';
+});
+document.addEventListener('mousemove', function(e) {
+  if (!resizeCol) return;
+  anchos[resizeCol] = Math.max(18, resizeStartW + (e.clientX - resizeStartX));
+  aplicarAnchos();
+});
+document.addEventListener('mouseup', function() {
+  if (resizeCol) { resizeCol = null; document.body.style.userSelect = ''; autoguardar(); }
+});
+
 // ─── SELECCIÓN RECTANGULAR CON ARRASTRE (goma elástica; Suprimir borra) ─────────
 // Arrastra de una celda a otra: selecciona TODO el rectángulo de celdas de puntaje,
 // en cualquier fila, columna y módulo de la página.
@@ -1208,7 +1253,7 @@ document.addEventListener('paste', function(e) {
 const AUTOSAVE_KEY = 'procesos_criticos_autosave';
 function autoguardar() {
   try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos }));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos, anchos }));
   } catch (e) {}
 }
 function restaurarAutoguardado() {
@@ -1220,6 +1265,7 @@ function restaurarAutoguardado() {
       tareas = est.tareas;
       rows = est.rows;
       if (est.titulos) Object.assign(titulos, est.titulos);
+      if (est.anchos) Object.assign(anchos, est.anchos);
       return est.header || null;
     }
   } catch (e) {}
