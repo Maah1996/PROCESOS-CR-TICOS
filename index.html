@@ -150,6 +150,14 @@
   .btn-save:hover { background: #0e7862; }
   .btn-db { background: #2c3e50; color: white; }
   .btn-db:hover { background: #1a252f; }
+  /* Barra de procesos: alineada sobre la columna TAREAS FUNDAMENTALES (empieza a 113px) */
+  .proceso-toolbar { margin: 0 0 5px 113px; width: 320px; display: flex; gap: 6px; }
+  .ptbtn { flex: 1; padding: 3px 6px; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+           font-family: 'Times New Roman', serif; font-size: 10px; font-weight: bold; color: #fff;
+           white-space: nowrap; transition: background .15s; }
+  .ptbtn-add  { background: #4472c4; }  .ptbtn-add:hover  { background: #2e5fa3; }
+  .ptbtn-del  { background: #c0504d; }  .ptbtn-del:hover  { background: #a23b38; }
+  .ptbtn-save { background: #16a085; }  .ptbtn-save:hover { background: #0e7862; }
   /* Resalta la cabecera de la columna seleccionada */
   .th-sub-num.col-activa { background: #ffe08a !important; outline: 2px solid #e6a800; outline-offset: -2px; }
   /* Tirador para redimensionar columnas fijas (borde derecho del encabezado) */
@@ -200,9 +208,6 @@
   <div class="btn-bar">
     <div class="btn-bar-left">
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
-      <button class="btn btn-add" onclick="addRow()">+ Agregar Proceso</button>
-      <button class="btn btn-del" onclick="delRow()">− Eliminar</button>
-      <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
     </div>
@@ -296,6 +301,13 @@
   </div>
 
   <div class="date-bar" id="dateBar">lunes 01 jun 2026</div>
+
+  <!-- BARRA DE PROCESOS (alineada sobre la columna TAREAS FUNDAMENTALES) -->
+  <div class="proceso-toolbar no-print">
+    <button class="ptbtn ptbtn-add"  onclick="addRow()">+ Agregar proceso</button>
+    <button class="ptbtn ptbtn-del"  onclick="delRow()">− Eliminar</button>
+    <button class="ptbtn ptbtn-save" onclick="guardarRegistro()">Guardar</button>
+  </div>
 
   <!-- MAIN TABLE -->
   <div class="table-wrapper">
