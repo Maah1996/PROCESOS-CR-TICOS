@@ -715,9 +715,9 @@ function renderBody() {
   rows.forEach((row, ri) => {
     let tr = `<tr class="${ri === filaActiva ? 'fila-activa' : ''}" onclick="setFilaActiva(${ri})">`;
     tr += `<td class="col-n">${row.n}</td>`;
-    tr += `<td class="col-unidad" contenteditable="true" tabindex="-1" onblur="rows[${ri}].unidad=this.textContent;autoguardar()">${escapeHtml(row.unidad)}</td>`;
-    tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[${ri}].codigo=this.textContent;autoguardar()">${escapeHtml(row.codigo)}</td>`;
-    tr += `<td class="proceso-name" contenteditable="true" tabindex="-1" onblur="rows[${ri}].proceso=this.textContent;autoguardar()">${escapeHtml(row.proceso)}</td>`;
+    tr += `<td class="col-unidad" contenteditable="true" tabindex="-1" data-ri="${ri}" data-field="unidad" onblur="rows[${ri}].unidad=this.textContent;autoguardar()">${escapeHtml(row.unidad)}</td>`;
+    tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" data-ri="${ri}" data-field="codigo" onblur="rows[${ri}].codigo=this.textContent;autoguardar()">${escapeHtml(row.codigo)}</td>`;
+    tr += `<td class="proceso-name" contenteditable="true" tabindex="-1" data-ri="${ri}" data-field="proceso" onblur="rows[${ri}].proceso=this.textContent;autoguardar()">${escapeHtml(row.proceso)}</td>`;
 
     for(let t=0; t<tareas.length; t++) {
       const cp = row.compredi[t];
@@ -1261,12 +1261,59 @@ function cambiarTexto(clave, dir) {
   setTexto(clave, next);
 }
 
-// ─── PEGAR COMO TEXTO PLANO (mantiene la fuente Times New Roman de la página) ────
+// ─── PEGAR INTELIGENTE (Word / Excel / entre filas) ──────────────────────────────
+// Siempre como TEXTO PLANO (mantiene la fuente Times New Roman de la página, sin
+// arrastrar estilos de Word/Excel). Si el contenido pegado tiene varias líneas o
+// columnas (saltos de línea / tabuladores), se reparte por filas y columnas de la
+// tabla (UNIDAD, CÓDIGO, TAREAS), creando filas nuevas si hacen falta.
+const CAMPOS_TABLA = ['unidad', 'codigo', 'proceso'];
+
+function nuevaFilaVacia() {
+  return { n: 0, unidad: '', codigo: '', proceso: '', scores: newScores(), compredi: newCompredi() };
+}
+
+// Convierte texto pegado en una matriz [fila][columna]. Excel separa columnas con
+// TAB y filas con salto de línea; Word (lista) usa solo saltos de línea.
+function parsearPegado(texto) {
+  const lineas = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  // quita una última línea vacía sobrante (típica de Excel/Word)
+  while (lineas.length > 1 && lineas[lineas.length - 1] === '') lineas.pop();
+  return lineas.map(l => l.split('\t'));
+}
+
+function pegarEnTabla(celda, texto) {
+  const matriz = parsearPegado(texto);
+  const ri0 = parseInt(celda.dataset.ri, 10);
+  const col0 = CAMPOS_TABLA.indexOf(celda.dataset.field);
+  matriz.forEach((fila, df) => {
+    const ri = ri0 + df;
+    while (rows.length <= ri) { rows.push(nuevaFilaVacia()); }   // crea filas si faltan
+    fila.forEach((valor, dc) => {
+      const col = col0 + dc;
+      if (col >= 0 && col < CAMPOS_TABLA.length) {
+        rows[ri][CAMPOS_TABLA[col]] = valor.trim();
+      }
+    });
+  });
+  renumerar();
+  renderBody();
+  autoguardar();
+}
+
 document.addEventListener('paste', function(e) {
   const ed = e.target.closest('[contenteditable]');
   if (!ed) return;
   e.preventDefault();
   const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
+
+  // Celda de la tabla (UNIDAD/CÓDIGO/TAREAS) + contenido multi-celda → repartir
+  const esCeldaTabla = ed.dataset && ed.dataset.field && CAMPOS_TABLA.includes(ed.dataset.field);
+  if (esCeldaTabla && /[\t\n]/.test(texto)) {
+    pegarEnTabla(ed, texto);
+    return;
+  }
+
+  // Caso normal (una sola celda, o campos del encabezado): texto plano
   document.execCommand('insertText', false, texto);
 });
 
