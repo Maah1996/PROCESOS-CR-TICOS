@@ -1045,6 +1045,8 @@ document.addEventListener('mouseup', function() {
 let isDragging = false;
 let dragPending = false;
 let dragStartX = 0, dragStartY = 0;
+let dragMode = null;          // 'score' | 'texto' según dónde empezó el arrastre
+let dragStartCell = null;     // celda de texto donde empezó (para detectar cruce)
 let selectedInputs = [];
 
 function clearSelection() {
@@ -1070,28 +1072,63 @@ function seleccionarEnRectangulo(x1, y1, x2, y2) {
 document.addEventListener('mousedown', function(e) {
   if (e.target.closest('.score-input')) {
     clearSelection();
-    dragPending = true;
-    isDragging = false;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-  } else {
-    clearSelection();
+    dragMode = 'score';
+    dragPending = true; isDragging = false;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    return;
   }
+  const celdaTxt = e.target.closest(SEL_TEXTO);
+  if (celdaTxt && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+    // Posible arrastre de bloque. NO hacemos preventDefault: un clic simple sigue
+    // editando, y arrastrar DENTRO de la misma celda selecciona texto normal.
+    clearSelection();
+    dragMode = 'texto';
+    dragPending = true; isDragging = false;
+    dragStartX = e.clientX; dragStartY = e.clientY;
+    dragStartCell = celdaTxt;
+    return;
+  }
+  clearSelection();
 });
 document.addEventListener('mousemove', function(e) {
   if (!dragPending) return;
-  if (!isDragging && (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4)) {
-    isDragging = true;
-    document.body.style.userSelect = 'none';        // evita seleccionar texto al arrastrar
-    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+
+  if (dragMode === 'score') {
+    if (!isDragging && (Math.abs(e.clientX - dragStartX) > 4 || Math.abs(e.clientY - dragStartY) > 4)) {
+      isDragging = true;
+      document.body.style.userSelect = 'none';
+      if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    }
+    if (!isDragging) return;
+    e.preventDefault();
+    seleccionarEnRectangulo(dragStartX, dragStartY, e.clientX, e.clientY);
+    return;
   }
-  if (!isDragging) return;
-  e.preventDefault();
-  seleccionarEnRectangulo(dragStartX, dragStartY, e.clientX, e.clientY);
+
+  if (dragMode === 'texto') {
+    // El bloque se activa SOLO cuando el cursor cruza a OTRA celda de texto.
+    // Mientras siga dentro de la celda inicial, se respeta la selección de texto nativa.
+    if (!isDragging) {
+      const elem = document.elementFromPoint(e.clientX, e.clientY);
+      const celdaAhora = elem && elem.closest ? elem.closest(SEL_TEXTO) : null;
+      if (celdaAhora && celdaAhora !== dragStartCell) {
+        isDragging = true;
+        document.body.style.userSelect = 'none';
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+      } else {
+        return;
+      }
+    }
+    e.preventDefault();
+    seleccionarEnRectanguloTexto(dragStartX, dragStartY, e.clientX, e.clientY);
+    return;
+  }
 });
 document.addEventListener('mouseup', function() {
   isDragging = false;
   dragPending = false;
+  dragMode = null;
+  dragStartCell = null;
   document.body.style.userSelect = '';
 });
 // ─── LLENAR / COPIAR / PEGAR RANGOS DE CELDAS ────────────────────────────────────
@@ -1333,6 +1370,20 @@ function clearTextSelection() {
 }
 function addCeldaSel(td) {
   if (selectedCells.indexOf(td) === -1) { selectedCells.push(td); td.classList.add('cell-selected'); }
+}
+// Marca toda celda de texto que el rectángulo TOQUE (intersección), como en Excel.
+// Se usa al ARRASTRAR de una celda a otra. Usamos intersección (no el centro) porque
+// la columna TAREAS es muy ancha y fija, y el centro quedaba justo en el borde.
+function seleccionarEnRectanguloTexto(x1, y1, x2, y2) {
+  const rx1 = Math.min(x1, x2), rx2 = Math.max(x1, x2);
+  const ry1 = Math.min(y1, y2), ry2 = Math.max(y1, y2);
+  clearTextSelection();
+  document.querySelectorAll(SEL_TEXTO).forEach(td => {
+    const r = td.getBoundingClientRect();
+    const tocaX = r.left <= rx2 && r.right >= rx1;
+    const tocaY = r.top <= ry2 && r.bottom >= ry1;
+    if (tocaX && tocaY) addCeldaSel(td);
+  });
 }
 // Selecciona el rectángulo entre dos celdas (para Shift+clic)
 function seleccionarRangoTexto(a, b) {
