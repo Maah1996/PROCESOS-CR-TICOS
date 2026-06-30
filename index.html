@@ -114,6 +114,8 @@
   td.score-input input { width: 24px; border: none; background: transparent; font-size: 9px; text-align: center; padding: 0; outline: none; font-weight: bold; color: #222; }
   td.score-input.filled { background: #cce4ff; }
   td.score-input.selected { background: #ffe566 !important; outline: 2px solid #e6a800; }
+  /* Multi-selección de celdas de texto con Ctrl+clic / Shift+clic (para copiar varias) */
+  td.cell-selected { background: #ffe566 !important; outline: 2px solid #e6a800; }
   td.score-input input:focus { background: transparent; }
   td.btn-clear { width: 18px; min-width: 18px; max-width: 18px; padding: 0; }
   td.btn-clear button { width: 16px; height: 16px; border: none; background: #e74c3c; color: white; font-size: 8px; cursor: pointer; border-radius: 2px; line-height: 1; }
@@ -1315,6 +1317,94 @@ document.addEventListener('paste', function(e) {
 
   // Caso normal (una sola celda, o campos del encabezado): texto plano
   document.execCommand('insertText', false, texto);
+});
+
+// ─── MULTI-SELECCIÓN DE CELDAS DE TEXTO (copiar/pegar 2 o 3 celdas) ───────────────
+// Se activa SOLO con Ctrl+clic (elegir celdas sueltas) o Shift+clic (rango). El clic
+// normal sigue editando la celda como siempre, sin interferencias.
+const SEL_TEXTO = 'td.col-unidad, td.col-codigo, td.proceso-name';
+let selectedCells = [];     // TDs de texto seleccionados
+let anclaTexto = null;      // última celda marcada (ancla para Shift+clic)
+let textoCopiado = null;    // respaldo interno del bloque copiado
+
+function clearTextSelection() {
+  selectedCells.forEach(td => td.classList.remove('cell-selected'));
+  selectedCells = [];
+}
+function addCeldaSel(td) {
+  if (selectedCells.indexOf(td) === -1) { selectedCells.push(td); td.classList.add('cell-selected'); }
+}
+// Selecciona el rectángulo entre dos celdas (para Shift+clic)
+function seleccionarRangoTexto(a, b) {
+  clearTextSelection();
+  const ra = +a.dataset.ri, ca = CAMPOS_TABLA.indexOf(a.dataset.field);
+  const rb = +b.dataset.ri, cb = CAMPOS_TABLA.indexOf(b.dataset.field);
+  const r1 = Math.min(ra, rb), r2 = Math.max(ra, rb);
+  const c1 = Math.min(ca, cb), c2 = Math.max(ca, cb);
+  for (let r = r1; r <= r2; r++) for (let c = c1; c <= c2; c++) {
+    const td = document.querySelector('td[data-ri="' + r + '"][data-field="' + CAMPOS_TABLA[c] + '"]');
+    if (td) addCeldaSel(td);
+  }
+}
+// Copia el bloque seleccionado como tabla (TAB entre columnas, salto entre filas)
+// al portapapeles del sistema (sirve también para pegar en Excel/Word) y a un respaldo.
+function copiarCeldasTexto() {
+  if (!selectedCells.length) return;
+  const coords = selectedCells.map(td => ({ ri: +td.dataset.ri, c: CAMPOS_TABLA.indexOf(td.dataset.field) }));
+  const r1 = Math.min(...coords.map(o => o.ri)), r2 = Math.max(...coords.map(o => o.ri));
+  const c1 = Math.min(...coords.map(o => o.c)),  c2 = Math.max(...coords.map(o => o.c));
+  const lineas = [];
+  for (let r = r1; r <= r2; r++) {
+    const fila = [];
+    for (let c = c1; c <= c2; c++) fila.push(rows[r] ? (rows[r][CAMPOS_TABLA[c]] || '') : '');
+    lineas.push(fila.join('\t'));
+  }
+  textoCopiado = lineas.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(textoCopiado).catch(() => {});
+}
+
+// Ctrl+clic = agrega/quita una celda; Shift+clic = rango desde la última marcada.
+document.addEventListener('mousedown', function(e) {
+  const celda = e.target.closest(SEL_TEXTO);
+  if (celda && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();                                  // no entrar a editar
+    const i = selectedCells.indexOf(celda);
+    if (i >= 0) { celda.classList.remove('cell-selected'); selectedCells.splice(i, 1); }
+    else { addCeldaSel(celda); }
+    anclaTexto = celda;
+    return;
+  }
+  if (celda && e.shiftKey && anclaTexto) {
+    e.preventDefault();
+    seleccionarRangoTexto(anclaTexto, celda);
+    return;
+  }
+  // Clic normal en cualquier parte: limpia la multi-selección
+  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) clearTextSelection();
+});
+
+// Ctrl+C copia la multi-selección; Ctrl+V la pega en la esquina sup-izq; Supr la borra.
+document.addEventListener('keydown', function(e) {
+  if (selectedCells.length === 0) return;
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copiarCeldasTexto(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+    e.preventDefault();
+    if (!textoCopiado) return;
+    const coords = selectedCells.map(td => ({ ri: +td.dataset.ri, c: CAMPOS_TABLA.indexOf(td.dataset.field) }));
+    const ri = Math.min(...coords.map(o => o.ri)), c = Math.min(...coords.map(o => o.c));
+    const ancla = document.querySelector('td[data-ri="' + ri + '"][data-field="' + CAMPOS_TABLA[c] + '"]');
+    clearTextSelection();
+    if (ancla) pegarEnTabla(ancla, textoCopiado);
+    return;
+  }
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault();
+    selectedCells.forEach(td => { rows[+td.dataset.ri][td.dataset.field] = ''; });
+    clearTextSelection();
+    renderBody();
+    autoguardar();
+    return;
+  }
 });
 
 // ─── AUTO-GUARDADO DEL TRABAJO EN CURSO ──────────────────────────────────────────
