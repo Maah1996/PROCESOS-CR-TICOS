@@ -199,7 +199,7 @@
     <div class="btn-bar-left">
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
       <button class="btn btn-add" onclick="addRow()">+ Agregar Proceso</button>
-      <button class="btn btn-del" onclick="delLastRow()">− Eliminar Último</button>
+      <button class="btn btn-del" onclick="delRow()">− Eliminar</button>
       <button class="btn btn-save" onclick="guardarRegistro()">💾 Guardar</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
@@ -821,11 +821,15 @@ function addRow() {
   autoguardar();
 }
 
-function delLastRow() {
+function delRow() {
   if(rows.length <= 1) return alert('Debe quedar al menos 1 proceso.');
-  rows.pop();
+  // Borra la fila donde el usuario hizo clic (la fila amarilla).
+  if (filaActiva === null || filaActiva < 0 || filaActiva >= rows.length) {
+    return alert('Haga clic en la fila que desea eliminar y vuelva a presionar "Eliminar".');
+  }
+  rows.splice(filaActiva, 1);
   renumerar();
-  if (filaActiva !== null && filaActiva >= rows.length) filaActiva = null;
+  filaActiva = null;        // sin selección tras borrar (evita borrar de más por error)
   renderBody();
   autoguardar();
 }
