@@ -114,8 +114,6 @@
   td.score-input input { width: 24px; border: none; background: transparent; font-size: 9px; text-align: center; padding: 0; outline: none; font-weight: bold; color: #222; }
   td.score-input.filled { background: #cce4ff; }
   td.score-input.selected { background: #ffe566 !important; outline: 2px solid #e6a800; }
-  /* Selección rectangular de las columnas de texto (UNIDAD/CÓDIGO/TAREAS) */
-  td.cell-selected { background: #ffe566 !important; outline: 2px solid #e6a800; }
   td.score-input input:focus { background: transparent; }
   td.btn-clear { width: 18px; min-width: 18px; max-width: 18px; padding: 0; }
   td.btn-clear button { width: 16px; height: 16px; border: none; background: #e74c3c; color: white; font-size: 8px; cursor: pointer; border-radius: 2px; line-height: 1; }
@@ -1052,54 +1050,6 @@ function clearSelection() {
   selectedInputs = [];
 }
 
-// ── Selección rectangular de las COLUMNAS DE TEXTO (UNIDAD/CÓDIGO/TAREAS) ──
-const SEL_TEXTO = 'td.col-unidad, td.col-codigo, td.proceso-name';
-let selectedCells = [];     // TDs de texto seleccionados
-let dragMode = null;        // 'score' | 'texto' según dónde empezó el arrastre
-let textoCopiado = null;    // respaldo interno del bloque copiado (texto)
-
-function clearTextSelection() {
-  selectedCells.forEach(td => td.classList.remove('cell-selected'));
-  selectedCells = [];
-}
-function seleccionarEnRectanguloTexto(x1, y1, x2, y2) {
-  const rx1 = Math.min(x1, x2), rx2 = Math.max(x1, x2);
-  const ry1 = Math.min(y1, y2), ry2 = Math.max(y1, y2);
-  clearTextSelection();
-  document.querySelectorAll(SEL_TEXTO).forEach(td => {
-    const r = td.getBoundingClientRect();
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    if (cx >= rx1 && cx <= rx2 && cy >= ry1 && cy <= ry2) {
-      selectedCells.push(td);
-      td.classList.add('cell-selected');
-    }
-  });
-}
-// Copia el bloque de celdas de texto seleccionado como tabla (TAB entre columnas,
-// salto de línea entre filas) al portapapeles del sistema y a un respaldo interno.
-function copiarCeldasTexto() {
-  if (!selectedCells.length) return;
-  const coords = selectedCells.map(td => ({ ri: +td.dataset.ri, c: CAMPOS_TABLA.indexOf(td.dataset.field) }));
-  const rmin = Math.min(...coords.map(o => o.ri)), rmax = Math.max(...coords.map(o => o.ri));
-  const cmin = Math.min(...coords.map(o => o.c)), cmax = Math.max(...coords.map(o => o.c));
-  const lineas = [];
-  for (let r = rmin; r <= rmax; r++) {
-    const fila = [];
-    for (let c = cmin; c <= cmax; c++) fila.push(rows[r] ? (rows[r][CAMPOS_TABLA[c]] || '') : '');
-    lineas.push(fila.join('\t'));
-  }
-  textoCopiado = lineas.join('\n');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(textoCopiado).catch(() => {});
-  }
-}
-function borrarCeldasTexto() {
-  selectedCells.forEach(td => { rows[+td.dataset.ri][td.dataset.field] = ''; });
-  clearTextSelection();
-  renderBody();
-  autoguardar();
-}
-
 // Marca como seleccionadas todas las celdas de puntaje dentro del rectángulo dado (px viewport).
 function seleccionarEnRectangulo(x1, y1, x2, y2) {
   const rx1 = Math.min(x1, x2), rx2 = Math.max(x1, x2);
@@ -1117,27 +1067,13 @@ function seleccionarEnRectangulo(x1, y1, x2, y2) {
 
 document.addEventListener('mousedown', function(e) {
   if (e.target.closest('.score-input')) {
-    clearSelection(); clearTextSelection();
-    dragMode = 'score';
-    dragPending = true;
-    isDragging = false;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-  } else if (e.target.closest(SEL_TEXTO)) {
-    const celda = e.target.closest(SEL_TEXTO);
-    clearSelection(); clearTextSelection();
-    // Si la celda YA está en edición (enfocada), respetar la selección de texto
-    // normal dentro de ella (no iniciar selección de bloque).
-    if (document.activeElement === celda) { dragMode = null; dragPending = false; return; }
-    // No hacemos preventDefault: un clic simple sigue editando la celda;
-    // solo si el usuario ARRASTRA (>4px) se activa la selección de bloque.
-    dragMode = 'texto';
+    clearSelection();
     dragPending = true;
     isDragging = false;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
   } else {
-    clearSelection(); clearTextSelection();
+    clearSelection();
   }
 });
 document.addEventListener('mousemove', function(e) {
@@ -1149,8 +1085,7 @@ document.addEventListener('mousemove', function(e) {
   }
   if (!isDragging) return;
   e.preventDefault();
-  if (dragMode === 'texto') seleccionarEnRectanguloTexto(dragStartX, dragStartY, e.clientX, e.clientY);
-  else seleccionarEnRectangulo(dragStartX, dragStartY, e.clientX, e.clientY);
+  seleccionarEnRectangulo(dragStartX, dragStartY, e.clientX, e.clientY);
 });
 document.addEventListener('mouseup', function() {
   isDragging = false;
@@ -1233,25 +1168,6 @@ document.addEventListener('keydown', function(e) {
   if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pegarRango(); return; }
   // Escribir un dígito 0-3: llena TODAS las celdas seleccionadas
   if (/^[0-3]$/.test(e.key)) { e.preventDefault(); llenarSeleccion(e.key); return; }
-});
-
-// ── Atajos para el bloque de celdas de TEXTO seleccionado (UNIDAD/CÓDIGO/TAREAS) ──
-document.addEventListener('keydown', function(e) {
-  if (selectedCells.length === 0) return;
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copiarCeldasTexto(); return; }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
-    // Pega el bloque copiado en la esquina superior-izquierda de la selección
-    e.preventDefault();
-    if (!textoCopiado) return;
-    const coords = selectedCells.map(td => ({ ri: +td.dataset.ri, c: CAMPOS_TABLA.indexOf(td.dataset.field) }));
-    const ri = Math.min(...coords.map(o => o.ri));
-    const c  = Math.min(...coords.map(o => o.c));
-    const ancla = document.querySelector('td[data-ri="' + ri + '"][data-field="' + CAMPOS_TABLA[c] + '"]');
-    clearTextSelection();
-    if (ancla) pegarEnTabla(ancla, textoCopiado);
-    return;
-  }
-  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); borrarCeldasTexto(); return; }
 });
 
 // ─── ENTER BAJA A LA MISMA COLUMNA, FILA SIGUIENTE ───────────────────────────
