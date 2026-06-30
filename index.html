@@ -61,7 +61,12 @@
   .date-bar { text-align: right; font-size: 11px; font-weight: bold; color: #4472c4; margin-bottom: 5px; }
 
   /* MAIN TABLE */
-  .table-wrapper { overflow-x: auto; }
+  /* La tabla es el área que se desplaza (vertical y horizontal). El alto máximo lo
+     ajusta ajustarAltoTabla() para que llene justo hasta el fondo de la pantalla. */
+  .table-wrapper { overflow: auto; max-height: calc(100vh - 360px); }
+  /* Encabezado fijo: al hacer scroll queda arriba y las filas pasan por debajo. */
+  #tableHead { position: sticky; top: 0; z-index: 8; }
+  #tableHead th.th-fixed { z-index: 9; }   /* esquina (cruce vertical + horizontal) */
 
   .main-table { width: auto; border-collapse: collapse; font-size: 9px; table-layout: fixed; }
   .main-table th, .main-table td { border: 1px solid #aaa; padding: 2px 3px; text-align: center; vertical-align: middle; }
@@ -198,6 +203,9 @@
     body { background: white; }
     .page { box-shadow: none; margin: 0; padding: 10px; }
     .btn-bar, .config-panel, .no-print { display: none !important; }
+    /* Al imprimir: nada de scroll ni alto limitado, y el encabezado no pegajoso */
+    .table-wrapper { overflow: visible !important; max-height: none !important; }
+    #tableHead { position: static !important; }
   }
 </style>
 </head>
@@ -1494,12 +1502,25 @@ function restaurarAutoguardado() {
   return null;
 }
 
+// ─── ALTO DINÁMICO DE LA TABLA ──────────────────────────────────────────────────
+// La tabla llena desde su posición hasta casi el fondo de la pantalla, así el scroll
+// queda dentro de la tabla y el encabezado (sticky) se mantiene siempre a la vista.
+function ajustarAltoTabla() {
+  const wrap = document.querySelector('.table-wrapper');
+  if (!wrap) return;
+  const top = wrap.getBoundingClientRect().top;        // distancia desde el borde superior visible
+  const alto = window.innerHeight - top - 12;
+  wrap.style.maxHeight = Math.max(220, alto) + 'px';
+}
+window.addEventListener('resize', ajustarAltoTabla);
+
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 const headerGuardado = restaurarAutoguardado();
 renderHead();
 renderBody();
 if (headerGuardado) applyHeaderConfig(headerGuardado);
 aplicarEstilosTamano();
+ajustarAltoTabla();
 </script>
 
 
