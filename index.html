@@ -1514,7 +1514,25 @@ function ajustarAltoTabla() {
   const alto = window.innerHeight - top - 12;
   wrap.style.maxHeight = Math.max(220, alto) + 'px';
 }
-window.addEventListener('resize', ajustarAltoTabla);
+
+// ─── POSICIONAR EL TRABAJO ARRIBA ────────────────────────────────────────────────
+// Deja la barra de procesos + la tabla pegadas al borde superior (el trabajo como lo
+// principal). El membrete/clasificación quedan ARRIBA: se ven subiendo con la rueda.
+// Se llama al cargar y al hacer ZOOM (el zoom dispara 'resize').
+function posicionarTrabajo() {
+  const wrap = document.querySelector('.table-wrapper');
+  const ancla = document.querySelector('.proceso-toolbar') || wrap;
+  if (!wrap) return;
+  // 1) Tabla alta primero: así la página tiene altura suficiente para subir el trabajo.
+  wrap.style.maxHeight = window.innerHeight + 'px';
+  // 2) Lleva la barra de procesos (y la tabla) al borde superior.
+  const y = ancla.getBoundingClientRect().top + window.scrollY - 6;
+  window.scrollTo(0, Math.max(0, y));
+  // 3) Ajusta el alto fino a la posición final (la tabla llena hasta el fondo).
+  ajustarAltoTabla();
+}
+let _posTimer = null;
+window.addEventListener('resize', function () { clearTimeout(_posTimer); _posTimer = setTimeout(posicionarTrabajo, 150); });
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 const headerGuardado = restaurarAutoguardado();
@@ -1523,6 +1541,7 @@ renderBody();
 if (headerGuardado) applyHeaderConfig(headerGuardado);
 aplicarEstilosTamano();
 ajustarAltoTabla();
+window.addEventListener('load', function () { setTimeout(posicionarTrabajo, 60); });
 </script>
 
 
