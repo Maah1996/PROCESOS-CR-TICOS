@@ -746,7 +746,7 @@ function renderBody() {
         >
       </td>`;
       const totClass = tot !== null && tot >= 2 ? 'tot-critico' : 'tot-cell';
-      tr += `<td id="tot-${ri}-${t}" class="${totClass}">${tot !== null ? tot : ''}</td>`;
+      tr += `<td id="tot-${ri}-${t}" data-tot="${t}" class="${totClass}">${tot !== null ? tot : ''}</td>`;
     }
 
     const nivel = calcNivel(row);
@@ -1237,7 +1237,7 @@ function selectorDe(clave) {
   if (clave === 'tareas') return 'td.col-n, td.col-unidad, td.col-codigo, td.proceso-name';
   if (clave === 'encab') return '.th-fixed > span[contenteditable]';   // títulos de las columnas fijas
   if (clave.startsWith('modtext')) return '[data-modtext="' + clave.slice(7) + '"]';   // párrafo de la tarea
-  if (clave.startsWith('modnum'))  return '.score-input input[data-t="' + clave.slice(6) + '"]'; // números
+  if (clave.startsWith('modnum'))  return '.score-input input[data-t="' + clave.slice(6) + '"], td[data-tot="' + clave.slice(6) + '"]'; // números + su TOTAL
   return null;
 }
 function defaultDe(clave) {                       // solo para mostrar en el selector
