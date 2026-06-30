@@ -898,9 +898,11 @@ function guardarRegistro() {
   saveDB(db);
 
   // NO se borra la pantalla: el trabajo queda a la vista para seguir editando.
-  const btn = document.querySelector('.btn-save');
-  btn.textContent = '✅ Guardado';
-  setTimeout(() => btn.textContent = '💾 Guardar', 2000);
+  const btn = document.querySelector('.ptbtn-save');
+  if (btn) {
+    btn.textContent = '✅ Guardado';
+    setTimeout(() => btn.textContent = 'Guardar', 2000);
+  }
   renderDBList();
 }
 
