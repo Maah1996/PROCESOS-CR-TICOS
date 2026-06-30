@@ -103,6 +103,8 @@
   /* UNIDAD, CÓDIGO y TAREAS FUNDAMENTALES: siempre en MAYÚSCULA (al escribir o pegar) */
   td.col-unidad, td.col-codigo, td.proceso-name { text-transform: uppercase; cursor: text; }
   td.col-unidad:hover, td.col-codigo:hover, td.proceso-name:hover { background:#f0f4ff; }
+  /* Fila seleccionada: el próximo "Agregar Proceso" inserta justo debajo de ella */
+  #tableBody tr.fila-activa > td { background-color: #fff3bf !important; }
   /* Sin recuadro negro al editar: edición natural, sin contorno de foco */
   [contenteditable]:focus { outline: none; }
 
@@ -555,6 +557,14 @@ function delTarea() {
   renderHead(); renderBody(); autoguardar();
 }
 
+// ─── FILA ACTIVA (para insertar un proceso justo debajo de donde está el cursor) ──
+let filaActiva = null;
+function setFilaActiva(ri) {
+  filaActiva = ri;
+  document.querySelectorAll('#tableBody tr').forEach((tr, i) => tr.classList.toggle('fila-activa', i === ri));
+}
+function renumerar() { rows.forEach((r, i) => r.n = i + 1); }
+
 // ─── COLUMNA ACTIVA (insertar a la derecha / eliminar la seleccionada) ───────────
 let colActiva = { t: 0, si: 0 };
 
@@ -703,7 +713,7 @@ function renderBody() {
   tbody.innerHTML = '';
 
   rows.forEach((row, ri) => {
-    let tr = `<tr>`;
+    let tr = `<tr class="${ri === filaActiva ? 'fila-activa' : ''}" onclick="setFilaActiva(${ri})">`;
     tr += `<td class="col-n">${row.n}</td>`;
     tr += `<td class="col-unidad" contenteditable="true" tabindex="-1" onblur="rows[${ri}].unidad=this.textContent;autoguardar()">${escapeHtml(row.unidad)}</td>`;
     tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" onblur="rows[${ri}].codigo=this.textContent;autoguardar()">${escapeHtml(row.codigo)}</td>`;
@@ -794,20 +804,28 @@ function updateCalcs(ri) {
 
 // ─── ROW MANAGEMENT ────────────────────────────────────────────────────────────
 function addRow() {
-  const n = rows.length + 1;
-  rows.push({
-    n, unidad: '', codigo: '',
-    proceso: 'Nuevo proceso ' + n,
+  // Si el usuario hizo clic en una fila, el nuevo proceso entra JUSTO DEBAJO de ella.
+  // Si no hay fila seleccionada, se agrega al final (como antes).
+  const pos = (filaActiva !== null && filaActiva >= 0 && filaActiva < rows.length)
+    ? filaActiva + 1
+    : rows.length;
+  rows.splice(pos, 0, {
+    n: 0, unidad: '', codigo: '',
+    proceso: 'Nuevo proceso',
     scores: newScores(),
     compredi: newCompredi()
   });
+  renumerar();
   renderBody();
+  setFilaActiva(pos);        // deja seleccionada la fila recién creada
   autoguardar();
 }
 
 function delLastRow() {
   if(rows.length <= 1) return alert('Debe quedar al menos 1 proceso.');
   rows.pop();
+  renumerar();
+  if (filaActiva !== null && filaActiva >= rows.length) filaActiva = null;
   renderBody();
   autoguardar();
 }
