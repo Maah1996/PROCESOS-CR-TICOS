@@ -1604,9 +1604,11 @@ function ajustarAltoTabla() {
   // En CELULAR no se fija el alto: la página se desplaza normal y la tabla se mueve
   // sola en horizontal. Fijar el alto trababa el scroll táctil.
   if (esMovil()) { wrap.style.maxHeight = 'none'; return; }
-  const top = wrap.getBoundingClientRect().top;        // distancia desde el borde superior visible
-  const alto = window.innerHeight - top - 12;
-  wrap.style.maxHeight = Math.max(220, alto) + 'px';
+  // ESCRITORIO: la tabla ocupa casi toda la pantalla (alto ≈ viewport). Como queda MÁS
+  // alta que el espacio bajo el encabezado, la PÁGINA gana su propio scroll (exterior):
+  // así puedes subir la matriz hasta arriba (el encabezado sube y se va). Además la tabla
+  // conserva su scroll interno para las filas/columnas que no alcanzan.
+  wrap.style.maxHeight = Math.max(220, window.innerHeight - 12) + 'px';
 }
 
 // ─── POSICIONAR EL TRABAJO ARRIBA ────────────────────────────────────────────────
