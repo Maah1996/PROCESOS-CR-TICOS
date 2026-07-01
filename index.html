@@ -205,6 +205,23 @@
   .nube-estado.ok { color: #16a085; }
   .nube-estado.guardando { color: #b7791f; }
   .nube-estado.err { color: #c0392b; }
+
+  /* ── MÓVIL / CELULAR ──────────────────────────────────────────────────────────
+     La tabla es ancha (pensada para PC). En el celular: el membrete se apila, la
+     tabla se desplaza SOLA en horizontal con el dedo, y la página sube/baja normal.
+     Se quita el alto fijo y el encabezado pegajoso porque TRABABAN el scroll táctil. */
+  @media (max-width: 820px) {
+    .page { margin: 6px auto; padding: 8px; overflow-x: hidden; }
+    .header-grid { grid-template-columns: 1fr; gap: 8px; }     /* membrete y clasificación uno debajo del otro */
+    .btn-bar { flex-direction: column; align-items: stretch; gap: 8px; }
+    #summary { justify-content: center; flex-wrap: wrap; }
+    .summary-card { min-width: 84px; padding: 6px 10px; }
+    .summary-card .val { font-size: 20px; }
+    .proceso-toolbar { margin-left: 0 !important; width: 100% !important; }
+    /* La tabla se mueve sola en horizontal; el alto lo maneja la página, no una caja fija. */
+    .table-wrapper { max-height: none !important; overflow-x: auto; overflow-y: visible; -webkit-overflow-scrolling: touch; }
+    #tableHead { position: static !important; }               /* sin sticky: no traba el scroll */
+  }
 </style>
 <!-- Firebase (mismo proyecto que MAPA-PLANO; colección separada para esta app) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -1575,12 +1592,18 @@ function nubeCargar() {
   });
 }
 
+// ¿Estamos en celular/pantalla chica? (coincide con el @media (max-width:820px))
+function esMovil() { return window.matchMedia('(max-width: 820px)').matches; }
+
 // ─── ALTO DINÁMICO DE LA TABLA ──────────────────────────────────────────────────
 // La tabla llena desde su posición hasta casi el fondo de la pantalla, así el scroll
 // queda dentro de la tabla y el encabezado (sticky) se mantiene siempre a la vista.
 function ajustarAltoTabla() {
   const wrap = document.querySelector('.table-wrapper');
   if (!wrap) return;
+  // En CELULAR no se fija el alto: la página se desplaza normal y la tabla se mueve
+  // sola en horizontal. Fijar el alto trababa el scroll táctil.
+  if (esMovil()) { wrap.style.maxHeight = 'none'; return; }
   const top = wrap.getBoundingClientRect().top;        // distancia desde el borde superior visible
   const alto = window.innerHeight - top - 12;
   wrap.style.maxHeight = Math.max(220, alto) + 'px';
@@ -1591,6 +1614,9 @@ function ajustarAltoTabla() {
 // principal). El membrete/clasificación quedan ARRIBA: se ven subiendo con la rueda.
 // Se llama al cargar y al hacer ZOOM (el zoom dispara 'resize').
 function posicionarTrabajo() {
+  // En CELULAR NO se reposiciona nada (traba el scroll táctil); solo se asegura de no
+  // dejar un alto fijo.
+  if (esMovil()) { ajustarAltoTabla(); return; }
   const wrap = document.querySelector('.table-wrapper');
   const ancla = document.querySelector('.proceso-toolbar') || wrap;
   if (!wrap) return;
