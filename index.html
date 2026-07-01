@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)https://maah1996.github.io/PROCESOS-CR-TICOS/ -->
 <html lang="es"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <!-- Evita que el navegador guarde en caché: siempre carga la última versión publicada -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -144,15 +143,9 @@
   #summary .summary-card .val { font-size: 18px; }
   #summary .summary-card .lbl { font-size: 9px; }
   .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-  .btn-add { background: #4472c4; color: white; }
-  .btn-add:hover { background: #2e5fa3; }
-  .btn-del { background: #e74c3c; color: white; }
-  .btn-del:hover { background: #c0392b; }
   .btn-export { background: #27ae60; color: white; }
   .btn-export:hover { background: #1e8449; }
   .btn-config { background: #8e44ad; color: white; }
-  .btn-save { background: #16a085; color: white; }
-  .btn-save:hover { background: #0e7862; }
   .btn-db { background: #2c3e50; color: white; }
   .btn-db:hover { background: #1a252f; }
   /* Barra de procesos: alineada sobre la columna TAREAS FUNDAMENTALES (empieza a 113px) */
@@ -1531,8 +1524,23 @@ function posicionarTrabajo() {
   // 3) Ajusta el alto fino a la posición final (la tabla llena hasta el fondo).
   ajustarAltoTabla();
 }
+// El auto-scroll SOLO se dispara cuando cambia el ANCHO (zoom real). En el celular el
+// scroll normal muestra/oculta la barra del navegador y eso cambia SOLO el alto: en ese
+// caso no reposicionamos (evita que la página "salte" tapando el membrete/misión), sólo
+// reajustamos el alto de la tabla.
 let _posTimer = null;
-window.addEventListener('resize', function () { clearTimeout(_posTimer); _posTimer = setTimeout(posicionarTrabajo, 150); });
+let _ultimoAncho = window.innerWidth;
+window.addEventListener('resize', function () {
+  clearTimeout(_posTimer);
+  _posTimer = setTimeout(function () {
+    if (window.innerWidth !== _ultimoAncho) {
+      _ultimoAncho = window.innerWidth;   // cambió el ancho → zoom/rotación: reposicionar
+      posicionarTrabajo();
+    } else {
+      ajustarAltoTabla();                 // sólo cambió el alto (scroll móvil): no saltar
+    }
+  }, 150);
+});
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 const headerGuardado = restaurarAutoguardado();
