@@ -107,8 +107,9 @@
   /* UNIDAD, CÓDIGO y TAREAS FUNDAMENTALES: siempre en MAYÚSCULA (al escribir o pegar) */
   td.col-unidad, td.col-codigo, td.proceso-name { text-transform: uppercase; cursor: text; }
   td.col-unidad:hover, td.col-codigo:hover, td.proceso-name:hover { background:#f0f4ff; }
-  /* Fila seleccionada: el próximo "Agregar Proceso" inserta justo debajo de ella */
-  #tableBody tr.fila-activa > td { background-color: #fff3bf !important; }
+  /* Celda seleccionada: solo se resalta la CELDA donde se hizo clic (no toda la fila),
+     así no perturba visualmente. La fila activa sigue definiendo dónde inserta/elimina. */
+  #tableBody td.celda-activa { background-color: #fff3bf !important; }
   /* Sin recuadro negro al editar: edición natural, sin contorno de foco */
   [contenteditable]:focus { outline: none; }
 
@@ -600,9 +601,12 @@ function delTarea() {
 
 // ─── FILA ACTIVA (para insertar un proceso justo debajo de donde está el cursor) ──
 let filaActiva = null;
-function setFilaActiva(ri) {
-  filaActiva = ri;
-  document.querySelectorAll('#tableBody tr').forEach((tr, i) => tr.classList.toggle('fila-activa', i === ri));
+function setFilaActiva(ri, ev) {
+  filaActiva = ri;   // sigue guardando la fila (para insertar/eliminar donde está el cursor)
+  // Ya NO se pinta toda la fila: solo se resalta la CELDA donde se hizo clic.
+  document.querySelectorAll('#tableBody td.celda-activa').forEach(td => td.classList.remove('celda-activa'));
+  const td = ev && ev.target && ev.target.closest ? ev.target.closest('td') : null;
+  if (td) td.classList.add('celda-activa');
 }
 function renumerar() { rows.forEach((r, i) => r.n = i + 1); }
 
@@ -754,7 +758,7 @@ function renderBody() {
   tbody.innerHTML = '';
 
   rows.forEach((row, ri) => {
-    let tr = `<tr class="${ri === filaActiva ? 'fila-activa' : ''}" onclick="setFilaActiva(${ri})">`;
+    let tr = `<tr class="${ri === filaActiva ? 'fila-activa' : ''}" onclick="setFilaActiva(${ri}, event)">`;
     tr += `<td class="col-n">${row.n}</td>`;
     tr += `<td class="col-unidad" contenteditable="true" tabindex="-1" data-ri="${ri}" data-field="unidad" onblur="rows[${ri}].unidad=this.textContent;autoguardar()">${escapeHtml(row.unidad)}</td>`;
     tr += `<td class="col-codigo" contenteditable="true" tabindex="-1" data-ri="${ri}" data-field="codigo" onblur="rows[${ri}].codigo=this.textContent;autoguardar()">${escapeHtml(row.codigo)}</td>`;
