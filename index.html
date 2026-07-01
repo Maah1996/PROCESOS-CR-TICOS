@@ -200,7 +200,15 @@
     .table-wrapper { overflow: visible !important; max-height: none !important; }
     #tableHead { position: static !important; }
   }
+  /* Indicador de estado de guardado en la nube */
+  .nube-estado { font-size: 10px; font-family: 'Times New Roman', Times, serif; margin-left: 6px; white-space: nowrap; }
+  .nube-estado.ok { color: #16a085; }
+  .nube-estado.guardando { color: #b7791f; }
+  .nube-estado.err { color: #c0392b; }
 </style>
+<!-- Firebase (mismo proyecto que MAPA-PLANO; colección separada para esta app) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="page">
@@ -211,6 +219,7 @@
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
+      <span id="nube-estado" class="nube-estado no-print">⌛ Conectando…</span>
     </div>
     <div id="summary">
     <div class="summary-card"><div class="val val-total">7</div><div class="lbl">Procesos Totales</div></div>
@@ -1478,8 +1487,10 @@ document.addEventListener('keydown', function(e) {
 const AUTOSAVE_KEY = 'procesos_criticos_autosave';
 function autoguardar() {
   try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos, anchos }));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos, anchos, savedAt: Date.now() }));
   } catch (e) {}
+  if (_initRenderDone) _userEdited = true;   // marca edición real del usuario (no el render inicial)
+  nubeGuardar();                             // guarda también en la nube (no-op hasta estar lista)
 }
 function restaurarAutoguardado() {
   try {
@@ -1495,6 +1506,73 @@ function restaurarAutoguardado() {
     }
   } catch (e) {}
   return null;
+}
+
+// ─── SINCRONIZACIÓN EN LA NUBE (Firebase / Firestore) ────────────────────────────
+// Guarda el trabajo en internet además del respaldo local. Así los datos NO se
+// pierden aunque limpies el navegador o cambies de PC, y al compartir el link la otra
+// persona ve los mismos datos. Si no hay internet o Firebase falla, la página sigue
+// funcionando solo con el guardado local (nunca se rompe).
+var _nubeOn = false, _nubeDoc = null, _nubeTimer = null;
+var _initRenderDone = false, _userEdited = false, _nubeListo = false, _localSavedAt = 0;
+
+(function initNube() {
+  try {
+    if (typeof firebase === 'undefined') return;   // sin internet/SDK: solo local
+    var cfg = {
+      apiKey: 'AIzaSyDi6CPHzqfAvRbofkB4cW4bFRWb9VcU9kQ',
+      authDomain: 'mapa-plano-montichef.firebaseapp.com',
+      projectId: 'mapa-plano-montichef',
+      storageBucket: 'mapa-plano-montichef.firebasestorage.app',
+      messagingSenderId: '18469178569',
+      appId: '1:18469178569:web:92d72ee3e0e0e399619118'
+    };
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    _nubeDoc = firebase.firestore().collection('procesos_criticos').doc('principal');
+    _nubeOn = true;
+  } catch (e) { _nubeOn = false; }
+})();
+
+function nubeEstado(txt, cls) {
+  var el = document.getElementById('nube-estado');
+  if (!el) return;
+  el.textContent = txt;
+  el.className = 'nube-estado no-print ' + (cls || '');
+}
+
+function nubeGuardar() {
+  if (!_nubeOn || !_nubeDoc || !_nubeListo) return;   // aún no lista: se ignora
+  clearTimeout(_nubeTimer);
+  _nubeTimer = setTimeout(function () {
+    // Todo el estado va como un solo texto JSON: así Firestore no se queja de los arrays
+    // anidados (scores) ni de valores nulos.
+    var payload = {
+      data: JSON.stringify({ tareas: tareas, rows: rows, header: getHeaderConfig(), titulos: titulos, anchos: anchos }),
+      updatedAt: Date.now()
+    };
+    nubeEstado('☁ Guardando…', 'guardando');
+    _nubeDoc.set(payload).then(function () {
+      nubeEstado('☁ Guardado en la nube', 'ok');
+    }).catch(function (err) {
+      nubeEstado('💾 Local (nube bloqueada)', 'err');
+      if (window.console) console.warn('Firestore write bloqueado:', err && err.code);
+    });
+  }, 900);
+}
+
+function nubeCargar() {
+  return new Promise(function (resolve) {
+    if (!_nubeOn || !_nubeDoc) return resolve(null);
+    _nubeDoc.get().then(function (snap) {
+      if (!snap || !snap.exists) return resolve(null);
+      var d = snap.data() || {};
+      try {
+        var obj = d.data ? JSON.parse(d.data) : d;   // texto JSON (o campos sueltos, por compatibilidad)
+        if (obj) obj.updatedAt = d.updatedAt || obj.updatedAt || 0;
+        resolve(obj);
+      } catch (e) { resolve(null); }
+    }).catch(function () { resolve(null); });
+  });
 }
 
 // ─── ALTO DINÁMICO DE LA TABLA ──────────────────────────────────────────────────
@@ -1543,12 +1621,52 @@ window.addEventListener('resize', function () {
 });
 
 // ─── INIT ──────────────────────────────────────────────────────────────────────
+function pintar(headerCfg) {
+  renderHead();
+  renderBody();
+  if (headerCfg) applyHeaderConfig(headerCfg);
+  aplicarEstilosTamano();
+  ajustarAltoTabla();
+}
+
+// Capturar la marca de tiempo del guardado local ANTES de renderizar (para comparar
+// con la nube y saber cuál es más nuevo).
+try { var _rawLocal = localStorage.getItem(AUTOSAVE_KEY); if (_rawLocal) _localSavedAt = (JSON.parse(_rawLocal).savedAt) || 0; } catch (e) {}
+
+// 1) Pinta de inmediato con el respaldo local: la página aparece al instante y funciona
+//    aunque no haya internet.
 const headerGuardado = restaurarAutoguardado();
-renderHead();
-renderBody();
-if (headerGuardado) applyHeaderConfig(headerGuardado);
-aplicarEstilosTamano();
-ajustarAltoTabla();
+pintar(headerGuardado);
+_initRenderDone = true;
+
+// 2) Luego trae la versión compartida desde la nube y decide cuál conservar.
+nubeCargar().then(function (data) {
+  const cloudOk = data && Array.isArray(data.tareas) && Array.isArray(data.rows);
+  if (!_userEdited && cloudOk && (data.updatedAt || 0) >= _localSavedAt) {
+    // La nube tiene lo más nuevo (o igual): aplícala y respáldala localmente.
+    tareas = data.tareas;
+    rows = data.rows;
+    if (data.titulos) Object.assign(titulos, data.titulos);
+    if (data.anchos) Object.assign(anchos, data.anchos);
+    pintar(data.header || null);
+    try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas: tareas, rows: rows, header: data.header, titulos: titulos, anchos: anchos, savedAt: (data.updatedAt || Date.now()) })); } catch (e) {}
+    nubeEstado('☁ Sincronizado con la nube', 'ok');
+    _nubeListo = true;
+  } else if (_nubeOn) {
+    // Lo de aquí es más nuevo (o la nube está vacía / el usuario ya editó): súbelo para
+    // que quede compartido.
+    nubeEstado('☁ Nube conectada', 'ok');
+    _nubeListo = true;
+    nubeGuardar();
+  } else {
+    nubeEstado('💾 Solo local (sin nube)', 'err');
+    _nubeListo = true;
+  }
+}).catch(function () {
+  nubeEstado('💾 Solo local (sin nube)', 'err');
+  _nubeListo = true;
+});
+
 window.addEventListener('load', function () { setTimeout(posicionarTrabajo, 60); });
 </script>
 
