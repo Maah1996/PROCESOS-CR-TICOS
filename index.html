@@ -1211,6 +1211,10 @@ function copiarSeleccion() {
     for (let c = cmin; c <= cmax; c++) { const inp = grid[r] && grid[r][c]; fila.push(inp ? inp.value : ''); }
     copiedValues.push(fila);
   }
+  // También al portapapeles del sistema (TAB entre columnas, salto entre filas): así se
+  // puede pegar en Excel/Word y volver a pegar acá desde el portapapeles real.
+  const tsv = copiedValues.map(f => f.join('\t')).join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(tsv).catch(() => {});
 }
 // Pega la matriz copiada a partir de la celda ancla (la enfocada o la esquina sup-izq de la selección)
 function pegarRango() {
@@ -1233,6 +1237,31 @@ function pegarRango() {
   }));
 }
 
+// Pega números en las celdas de PUNTAJE desde el portapapeles del sistema (Excel/Word)
+// o desde una copia interna. Reparte por filas/columnas a partir de la celda ancla (la
+// enfocada o la esquina superior-izquierda de la selección).
+function pegarPuntajes(texto, inpFoco) {
+  if (!texto) { pegarRango(); return; }        // sin texto del portapapeles: usa la copia interna
+  const matriz = parsearPegado(texto);          // filas → columnas (TAB / saltos de línea)
+  const grid = getGrid();
+  let ar, ac;
+  if (inpFoco && inpFoco.dataset) {
+    ar = +inpFoco.dataset.ri;
+    ac = grid[ar] ? grid[ar].indexOf(inpFoco) : 0;
+  } else if (selectedInputs.length) {
+    let best = null;
+    selectedInputs.forEach(inp => { const ri = +inp.dataset.ri, c = grid[ri].indexOf(inp); if (!best || ri < best.ri || (ri === best.ri && c < best.c)) best = { ri, c }; });
+    ar = best.ri; ac = best.c;
+  } else { return; }
+  if (ac < 0) ac = 0;
+  clearSelection();
+  matriz.forEach((fila, dr) => fila.forEach((celda, dc) => {
+    const val = String(celda).replace(/[^0-3]/g, '').slice(-1);   // solo dígitos 0-3
+    const inp = grid[ar + dr] && grid[ar + dr][ac + dc];
+    if (inp) { aplicarValorCelda(inp, val); inp.closest('td').classList.add('selected'); selectedInputs.push(inp); }
+  }));
+}
+
 document.addEventListener('keydown', function(e) {
   if (selectedInputs.length === 0) return;
   // Suprimir / Retroceso: borra toda la selección
@@ -1249,7 +1278,14 @@ document.addEventListener('keydown', function(e) {
   }
   // Copiar / Pegar rango
   if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); copiarSeleccion(); return; }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) { e.preventDefault(); pegarRango(); return; }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+    e.preventDefault();
+    const foco = (document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('score-drag')) ? document.activeElement : null;
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      navigator.clipboard.readText().then(txt => pegarPuntajes(txt, foco)).catch(() => pegarRango());
+    } else { pegarRango(); }   // navegador sin permiso de lectura: usa la copia interna
+    return;
+  }
   // Escribir un dígito 0-3: llena TODAS las celdas seleccionadas
   if (/^[0-3]$/.test(e.key)) { e.preventDefault(); llenarSeleccion(e.key); return; }
 });
@@ -1385,10 +1421,20 @@ function pegarEnTabla(celda, texto) {
 }
 
 document.addEventListener('paste', function(e) {
+  const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
+
+  // 1) Celdas de PUNTAJE (números): pega desde Excel/Word o copia interna, repartiendo.
+  const inpFoco = e.target.closest ? e.target.closest('.score-drag') : null;
+  if (inpFoco || selectedInputs.length) {
+    e.preventDefault();
+    pegarPuntajes(texto, inpFoco);
+    return;
+  }
+
+  // 2) Celdas de texto (UNIDAD/CÓDIGO/TAREAS)
   const ed = e.target.closest('[contenteditable]');
   if (!ed) return;
   e.preventDefault();
-  const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
 
   // Celda de la tabla (UNIDAD/CÓDIGO/TAREAS) + contenido multi-celda → repartir
   const esCeldaTabla = ed.dataset && ed.dataset.field && CAMPOS_TABLA.includes(ed.dataset.field);
