@@ -1420,8 +1420,31 @@ function pegarEnTabla(celda, texto) {
   autoguardar();
 }
 
+// Inserta texto plano en la posición del cursor de un contenteditable (misión, encabezado,
+// texto de módulo). No depende de execCommand (que a veces falla con contenido de Word).
+function insertarEnCursor(ed, texto) {
+  const sel = window.getSelection();
+  if (sel && sel.rangeCount && ed.contains(sel.anchorNode)) {
+    const range = sel.getRangeAt(0);
+    range.deleteContents();
+    const node = document.createTextNode(texto);
+    range.insertNode(node);
+    range.setStartAfter(node); range.setEndAfter(node);
+    sel.removeAllRanges(); sel.addRange(range);
+  } else {
+    ed.textContent = (ed.textContent || '') + texto;   // sin cursor: agrega al final
+  }
+}
+
 document.addEventListener('paste', function(e) {
-  const texto = (e.clipboardData || window.clipboardData).getData('text/plain');
+  const cb = e.clipboardData || window.clipboardData;
+  let texto = cb.getData('text/plain');
+  // Respaldo: algunas fuentes (Word en ciertos casos) NO entregan texto plano, solo HTML.
+  // En ese caso extraemos el texto del HTML para que igual se pueda pegar.
+  if (!texto) {
+    const html = cb.getData('text/html');
+    if (html) { const tmp = document.createElement('div'); tmp.innerHTML = html; texto = (tmp.textContent || tmp.innerText || ''); }
+  }
 
   // 1) Celdas de PUNTAJE (números): pega desde Excel/Word o copia interna, repartiendo.
   const inpFoco = e.target.closest ? e.target.closest('.score-drag') : null;
@@ -1431,20 +1454,30 @@ document.addEventListener('paste', function(e) {
     return;
   }
 
-  // 2) Celdas de texto (UNIDAD/CÓDIGO/TAREAS)
+  // 2) Celdas contenteditable
   const ed = e.target.closest('[contenteditable]');
   if (!ed) return;
   e.preventDefault();
+  if (texto === '') return;
 
-  // Celda de la tabla (UNIDAD/CÓDIGO/TAREAS) + contenido multi-celda → repartir
+  // Celdas de la tabla (UNIDAD/CÓDIGO/TAREAS): guardan el dato AL INSTANTE (no dependen del
+  // clic afuera). Word suele añadir un salto al final; lo quitamos para no crear filas fantasma.
   const esCeldaTabla = ed.dataset && ed.dataset.field && CAMPOS_TABLA.includes(ed.dataset.field);
-  if (esCeldaTabla && /[\t\n]/.test(texto)) {
-    pegarEnTabla(ed, texto);
+  if (esCeldaTabla) {
+    const limpio = texto.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\n+$/, '');
+    if (/[\t\n]/.test(limpio)) {
+      pegarEnTabla(ed, texto);            // varias celdas/filas → repartir
+    } else {
+      const ri = +ed.dataset.ri;          // valor único → reemplaza y guarda el modelo
+      rows[ri][ed.dataset.field] = limpio.trim();
+      ed.textContent = limpio.trim();
+      autoguardar();
+    }
     return;
   }
 
-  // Caso normal (una sola celda, o campos del encabezado): texto plano
-  document.execCommand('insertText', false, texto);
+  // Otros contenteditable (misión, encabezado, texto de módulo): inserta en el cursor.
+  insertarEnCursor(ed, texto);
 });
 
 // ─── MULTI-SELECCIÓN DE CELDAS DE TEXTO (copiar/pegar 2 o 3 celdas) ───────────────
