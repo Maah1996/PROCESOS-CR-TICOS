@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.2.0';
+var APP_VER = '1.3.0';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -667,7 +667,7 @@ function renderHead() {
         <div class="mod-texto" contenteditable="true" data-modtext="${t}" onblur="tareas[${t}].text=this.textContent;autoguardar()" style="outline:none;">${escapeHtml(tareas[t].text)}</div>
         <div class="no-print mod-ctrls">
           <span class="col-acciones"><span class="col-lbl">Col</span><button type="button" class="colmod-add" onclick="addColModulo(${t})" title="Agregar columna a la derecha de la seleccionada">+</button><button type="button" class="colmod-del" onclick="delColModulo(${t})" title="Eliminar la columna seleccionada">−</button></span>
-          ${colapsable(ctrlTamano('modtext' + t, 'Texto') + ctrlTamano('modnum' + t, 'N°'))}
+          ${isFirst ? colapsable(ctrlTamano('modtext', 'Texto') + ctrlTamano('modnum', 'N°'), 'Ajustar la letra de TODOS los módulos y columnas') : ''}
         </div>
       </div>
     </th>`;
@@ -893,6 +893,9 @@ function guardarRegistro() {
     header: getHeaderConfig(),
     tareas: JSON.parse(JSON.stringify(tareas)),
     rows:   JSON.parse(JSON.stringify(rows)),
+    titulos: JSON.parse(JSON.stringify(titulos)),
+    anchos:  JSON.parse(JSON.stringify(anchos)),
+    tamanos: JSON.parse(JSON.stringify(tamanos)),
   };
   db.push(registro);
   if (!saveDB(db)) return;   // sin espacio: no simular que se guardó
@@ -913,6 +916,9 @@ function cargarRegistro(id) {
   if (!confirm('¿Cargar "' + reg.nombre + '"? Se perderán los datos actuales no guardados.')) return;
   tareas = reg.tareas;
   rows   = reg.rows;
+  if (reg.titulos) Object.assign(titulos, reg.titulos);
+  if (reg.anchos)  Object.assign(anchos, reg.anchos);
+  if (reg.tamanos) Object.assign(tamanos, reg.tamanos);
   filaActiva = null;
   colActiva = { t: 0, si: 0 };
   pintar(reg.header);     // normaliza + dibuja (antes podía quedar desalineado)
@@ -1293,30 +1299,45 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
-// ─── TAMAÑO DE LETRA POR BLOQUE / COLUMNA ────────────────────────────────────────
-// Cada control tiene una "clave": 'mision', 'tareas' (columna Tareas Fundamentales)
-// o 'mod<t>' (las celdas de números del módulo t). Los tamaños se aplican mediante
-// una hoja de estilos dinámica, así sobreviven a re-render de la tabla.
+// ─── TAMAÑO DE LETRA ─────────────────────────────────────────────────────────────
+// Los tamaños son GLOBALES: el control del primer módulo manda sobre TODOS los módulos
+// y columnas, incluidos los que se agreguen después. Antes había un control por módulo
+// (clave 'modtext0', 'modnum0', 'modtext1'…) y cada módulo nuevo nacía con el tamaño por
+// defecto, así que la tabla quedaba despareja.
+// Además, los tamaños ahora viajan CON la planilla (autoguardado + nube): antes vivían
+// solo en este navegador y al abrir en otro equipo, o al sincronizar, se perdían.
 const SIZE_OPCIONES = [8, 10, 12, 13, 14, 16, 18];
-const SIZE_KEY = 'procesos_criticos_sizes';
+const SIZE_KEY = 'procesos_criticos_sizes';   // solo para migrar lo guardado antes
 
-function getSizes() {
-  try { return JSON.parse(localStorage.getItem(SIZE_KEY)) || {}; }
-  catch(e) { return {}; }
+let tamanos = {};   // { mision, tareas, encab, modtext, modnum }
+
+function getSizes() { return tamanos; }
+
+// Recupera lo que el usuario tenía configurado en la versión anterior (por módulo) y lo
+// convierte al esquema global, tomando el primer módulo como referencia.
+function migrarTamanosAntiguos() {
+  let viejo = null;
+  try { viejo = JSON.parse(localStorage.getItem(SIZE_KEY)); } catch (e) {}
+  if (!viejo) return;
+  ['mision', 'tareas', 'encab'].forEach(k => { if (viejo[k] && !tamanos[k]) tamanos[k] = viejo[k]; });
+  if (!tamanos.modtext && viejo.modtext0) tamanos.modtext = viejo.modtext0;
+  if (!tamanos.modnum  && viejo.modnum0)  tamanos.modnum  = viejo.modnum0;
 }
+
 function selectorDe(clave) {
   if (clave === 'mision') return '#h-mision';
   if (clave === 'tareas') return 'td.col-n, td.col-unidad, td.col-codigo, td.proceso-name';
-  if (clave === 'encab') return '.th-fixed > span[contenteditable]';   // títulos de las columnas fijas
-  if (clave.startsWith('modtext')) return '[data-modtext="' + clave.slice(7) + '"]';   // párrafo de la tarea
-  if (clave.startsWith('modnum'))  return '.score-input input[data-t="' + clave.slice(6) + '"], td[data-tot="' + clave.slice(6) + '"], td.nivel-cell'; // números + TOTAL + NIVEL
+  if (clave === 'encab')  return '.th-fixed > span[contenteditable]';   // títulos de las columnas fijas
+  // Sin índice de módulo: alcanza a todos los módulos presentes y futuros.
+  if (clave === 'modtext') return '.th-tarea .mod-texto';                       // texto de las tareas
+  if (clave === 'modnum')  return '.score-input input, td[data-tot], td.nivel-cell'; // números + TOTAL + NIVEL
   return null;
 }
 function defaultDe(clave) {                       // solo para mostrar en el selector
-  if (clave === 'tareas') return 8;
-  if (clave === 'encab') return 8;
-  if (clave.startsWith('modtext')) return 8;
-  if (clave.startsWith('modnum')) return 10;
+  if (clave === 'tareas')  return 8;
+  if (clave === 'encab')   return 8;
+  if (clave === 'modtext') return 8;
+  if (clave === 'modnum')  return 10;
   return 10;                                      // misión
 }
 
@@ -1332,25 +1353,23 @@ function ctrlTamano(clave, etiqueta) {
 }
 
 // Envuelve uno o más controles en una pestaña colapsable "Aa ▾"
-function colapsable(innerHtml) {
+function colapsable(innerHtml, titulo) {
   return '<span class="size-collapse no-print">' +
-    '<button type="button" class="size-toggle" onclick="this.closest(\'.size-collapse\').classList.toggle(\'abierto\')" title="Ajustar tamaño de letra">Aa ▾</button>' +
+    '<button type="button" class="size-toggle" onclick="this.closest(\'.size-collapse\').classList.toggle(\'abierto\')" title="' +
+      escapeHtml(titulo || 'Ajustar tamaño de letra') + '">Aa ▾</button>' +
     '<span class="size-panel">' + innerHtml + '</span>' +
   '</span>';
 }
 
-// Reconstruye la hoja de estilos con los tamaños elegidos y refleja el valor en cada selector.
+// Reconstruye la hoja de estilos con los tamaños elegidos y refleja el valor en el selector.
+const CLAVES_TAMANO = ['mision', 'tareas', 'encab', 'modtext', 'modnum'];
 function aplicarEstilosTamano() {
-  const sizes = getSizes();
-  const claves = ['mision', 'tareas', 'encab'];
-  for (let t = 0; t < tareas.length; t++) { claves.push('modtext' + t); claves.push('modnum' + t); }
-
   let css = '';
-  claves.forEach(clave => {
+  CLAVES_TAMANO.forEach(clave => {
     const sel = selectorDe(clave);
-    if (sizes[clave] && sel) css += sel + '{font-size:' + sizes[clave] + 'px !important;}\n';
+    if (tamanos[clave] && sel) css += sel + '{font-size:' + tamanos[clave] + 'px !important;}\n';
     const selEl = document.getElementById('size-' + clave);
-    if (selEl) selEl.value = sizes[clave] || defaultDe(clave);
+    if (selEl) selEl.value = tamanos[clave] || defaultDe(clave);
   });
 
   let styleEl = document.getElementById('estilos-tamano');
@@ -1360,13 +1379,12 @@ function aplicarEstilosTamano() {
 
 function setTexto(clave, px) {
   if (!SIZE_OPCIONES.includes(px)) return;
-  const sizes = getSizes(); sizes[clave] = px;
-  localStorage.setItem(SIZE_KEY, JSON.stringify(sizes));
+  tamanos[clave] = px;
   aplicarEstilosTamano();
+  autoguardar();     // queda guardado con la planilla (local + nube)
 }
 function cambiarTexto(clave, dir) {
-  const sizes = getSizes();
-  const actual = sizes[clave] || defaultDe(clave);
+  const actual = tamanos[clave] || defaultDe(clave);
   const i = SIZE_OPCIONES.indexOf(actual);
   const next = SIZE_OPCIONES[Math.max(0, Math.min(SIZE_OPCIONES.length - 1, i + dir))];
   setTexto(clave, next);
@@ -1580,7 +1598,7 @@ const AUTOSAVE_KEY = 'procesos_criticos_autosave';
 let _avisoCuota = false;
 function autoguardar() {
   try {
-    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos, anchos, savedAt: Date.now() }));
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas, rows, header: getHeaderConfig(), titulos, anchos, tamanos, savedAt: Date.now() }));
   } catch (e) {
     // El respaldo local dejó de funcionar (almacenamiento lleno). Se avisa UNA vez, en el
     // indicador, en vez de fallar en silencio como antes.
@@ -1604,6 +1622,7 @@ function restaurarAutoguardado() {
       rows = est.rows;
       if (est.titulos) Object.assign(titulos, est.titulos);
       if (est.anchos) Object.assign(anchos, est.anchos);
+      if (est.tamanos) Object.assign(tamanos, est.tamanos);
       return est.header || null;
     }
   } catch (e) {}
@@ -1718,7 +1737,7 @@ function nubeGuardar() {
     // Todo el estado va como un solo texto JSON: así Firestore no se queja de los arrays
     // anidados (scores) ni de valores nulos.
     var payload = {
-      data: JSON.stringify({ tareas: tareas, rows: rows, header: getHeaderConfig(), titulos: titulos, anchos: anchos }),
+      data: JSON.stringify({ tareas: tareas, rows: rows, header: getHeaderConfig(), titulos: titulos, anchos: anchos, tamanos: tamanos }),
       updatedAt: Date.now(),
       cliente: MI_CLIENTE,
       porEmail: (_auth && _auth.currentUser && _auth.currentUser.email) || ''
@@ -1766,6 +1785,7 @@ function aplicarRemoto(obj) {
   rows   = obj.rows;
   if (obj.titulos) Object.assign(titulos, obj.titulos);
   if (obj.anchos)  Object.assign(anchos, obj.anchos);
+  if (obj.tamanos) Object.assign(tamanos, obj.tamanos);
   filaActiva = null;
   colActiva = { t: 0, si: 0 };
   _nubeListo = false;                 // pintar dispara autoguardar; no rebotar a la nube
@@ -1775,7 +1795,7 @@ function aplicarRemoto(obj) {
   try {
     localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
       tareas: tareas, rows: rows, header: obj.header, titulos: titulos, anchos: anchos,
-      savedAt: (obj.updatedAt || Date.now())
+      tamanos: tamanos, savedAt: (obj.updatedAt || Date.now())
     }));
   } catch (e) {}
 }
@@ -1898,7 +1918,9 @@ function arrancarApp() {
   _appArrancada = true;
   // Marca de tiempo del guardado local ANTES de renderizar, para comparar con la nube.
   try { var raw = localStorage.getItem(AUTOSAVE_KEY); if (raw) _localSavedAt = (JSON.parse(raw).savedAt) || 0; } catch (e) {}
-  pintar(restaurarAutoguardado());
+  const cfgGuardada = restaurarAutoguardado();
+  migrarTamanosAntiguos();   // rescata el tamaño configurado con la versión anterior
+  pintar(cfgGuardada);
   _initRenderDone = true;
   setTimeout(posicionarTrabajo, 60);
 }
