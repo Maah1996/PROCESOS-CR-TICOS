@@ -1,0 +1,7 @@
+# El PDF es binario: sin esto Git le cambia los saltos de línea al descargarlo y lo daña.
+*.pdf binary
+
+# El resto es texto; se guarda con saltos LF en el repositorio.
+*.html text eol=lf
+*.md   text eol=lf
+*.py   text eol=lf
