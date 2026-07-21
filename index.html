@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.1.0';
+var APP_VER = '1.2.0';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -204,6 +204,41 @@ var APP_VER = '1.1.0';
     .table-wrapper { overflow: visible !important; max-height: none !important; }
     #tableHead { position: static !important; }
   }
+  /* ── LOGIN ─────────────────────────────────────────────────────────────────── */
+  .login-ov { position: fixed; inset: 0; background: #33415a; display: none; align-items: center;
+              justify-content: center; z-index: 9999; padding: 16px; }
+  .login-ov.abierto { display: flex; }
+  .login-caja { background: #fff; border-radius: 8px; padding: 26px 28px; width: 100%; max-width: 360px;
+                box-shadow: 0 8px 30px rgba(0,0,0,.35); font-family: 'Times New Roman', Times, serif; }
+  .login-caja h2 { font-size: 17px; text-align: center; margin-bottom: 3px; }
+  .login-sub { font-size: 11px; text-align: center; color: #666; margin-bottom: 16px; }
+  .login-caja label { display: block; font-size: 11px; font-weight: bold; margin: 10px 0 3px; }
+  .login-caja input { width: 100%; padding: 7px 9px; border: 1px solid #bbb; border-radius: 4px;
+                      font-size: 13px; font-family: 'Times New Roman', Times, serif; }
+  .login-caja button.primario { width: 100%; margin-top: 16px; padding: 9px; border: none; border-radius: 4px;
+                                background: #4472c4; color: #fff; font-size: 13px; font-weight: bold; cursor: pointer;
+                                font-family: 'Times New Roman', Times, serif; }
+  .login-caja button.primario:hover { background: #2e5fa3; }
+  .login-caja button.primario:disabled { background: #9bb; cursor: default; }
+  .login-link { display: block; margin-top: 12px; text-align: center; font-size: 11px; color: #4472c4;
+                background: none; border: none; cursor: pointer; width: 100%;
+                font-family: 'Times New Roman', Times, serif; }
+  .login-msg { margin-top: 12px; font-size: 11px; text-align: center; min-height: 15px; }
+  .login-msg.err { color: #c0392b; } .login-msg.ok { color: #16a085; }
+  .sesion { font-size: 10px; color: #555; margin-left: 6px; }
+  .sesion button { font-size: 10px; margin-left: 4px; padding: 1px 6px; border: 1px solid #bbb;
+                   background: #fff; border-radius: 3px; cursor: pointer;
+                   font-family: 'Times New Roman', Times, serif; }
+
+  /* Aviso cuando OTRA persona guardó cambios mientras tú editabas */
+  .aviso-conflicto { display: none; background: #fff3cd; border: 1px solid #e0a800; border-radius: 5px;
+                     padding: 8px 12px; margin-bottom: 10px; font-size: 12px; align-items: center; gap: 10px;
+                     flex-wrap: wrap; }
+  .aviso-conflicto.abierto { display: flex; }
+  .aviso-conflicto button { font-size: 11px; font-weight: bold; padding: 4px 10px; border: none; border-radius: 3px;
+                            cursor: pointer; color: #fff; font-family: 'Times New Roman', Times, serif; }
+  .ac-ver { background: #4472c4; } .ac-mio { background: #c0504d; }
+
   /* Indicador de estado de guardado en la nube */
   .nube-estado { font-size: 10px; font-family: 'Times New Roman', Times, serif; margin-left: 6px; white-space: nowrap; }
   .nube-estado.ok { color: #16a085; }
@@ -229,9 +264,27 @@ var APP_VER = '1.1.0';
 </style>
 <!-- Firebase (mismo proyecto que MAPA-PLANO; colección separada para esta app) -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+<!-- LOGIN: cubre la página hasta que la persona se identifica. Solo los correos
+     autorizados en las reglas de Firestore pueden leer y escribir la planilla. -->
+<div class="login-ov no-print" id="loginOv">
+  <form class="login-caja" id="loginForm">
+    <h2>Análisis de Procesos Críticos</h2>
+    <div class="login-sub">V División — acceso restringido</div>
+    <label for="li-email">Correo institucional</label>
+    <input type="email" id="li-email" autocomplete="username" required>
+    <label for="li-pass">Contraseña</label>
+    <input type="password" id="li-pass" autocomplete="current-password" required>
+    <button type="submit" class="primario" id="li-btn">Ingresar</button>
+    <button type="button" class="login-link" id="li-olvide">Olvidé mi contraseña</button>
+    <div class="login-msg" id="li-msg"></div>
+  </form>
+</div>
+
 <div class="page">
 
   <!-- CONFIG TOGGLE -->
@@ -241,12 +294,20 @@ var APP_VER = '1.1.0';
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
       <span id="nube-estado" class="nube-estado no-print">⌛ Conectando…</span>
+      <span id="sesion" class="sesion no-print"></span>
     </div>
     <div id="summary">
     <div class="summary-card"><div class="val val-total">7</div><div class="lbl">Procesos Totales</div></div>
     <div class="summary-card"><div class="val val-critico">0</div><div class="lbl">Procesos Críticos</div></div>
     <div class="summary-card"><div class="val val-porc">0%</div><div class="lbl">% Criticidad</div></div>
   </div>
+  </div>
+
+  <!-- AVISO: otra persona guardó cambios mientras tú editabas -->
+  <div class="aviso-conflicto no-print" id="avisoConflicto">
+    <span id="ac-texto">Otra persona guardó cambios en la planilla compartida.</span>
+    <button type="button" class="ac-ver" onclick="resolverConflicto('remoto')">Ver sus cambios</button>
+    <button type="button" class="ac-mio" onclick="resolverConflicto('mio')">Conservar los míos</button>
   </div>
 
   <!-- DB PANEL -->
@@ -1554,8 +1615,15 @@ function restaurarAutoguardado() {
 // pierden aunque limpies el navegador o cambies de PC, y al compartir el link la otra
 // persona ve los mismos datos. Si no hay internet o Firebase falla, la página sigue
 // funcionando solo con el guardado local (nunca se rompe).
-var _nubeOn = false, _nubeDoc = null, _nubeTimer = null;
+var _nubeOn = false, _nubeDoc = null, _nubeTimer = null, _auth = null, _unsub = null;
 var _initRenderDone = false, _userEdited = false, _nubeListo = false, _localSavedAt = 0;
+var _appArrancada = false;      // la planilla ya se pintó (no repetir al reingresar)
+var _cambiosPendientes = false; // edité algo que todavía no confirma la nube
+var _remotoEnEspera = null;     // versión de otra persona esperando que yo decida
+
+// Identificador de ESTA pestaña: sirve para reconocer el eco de mis propias escrituras
+// y no repintar la pantalla con lo que yo mismo acabo de guardar.
+var MI_CLIENTE = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 (function initNube() {
   try {
@@ -1570,9 +1638,70 @@ var _initRenderDone = false, _userEdited = false, _nubeListo = false, _localSave
     };
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     _nubeDoc = firebase.firestore().collection('procesos_criticos').doc('principal');
+    _auth = firebase.auth();
     _nubeOn = true;
   } catch (e) { _nubeOn = false; }
 })();
+
+// ─── LOGIN ──────────────────────────────────────────────────────────────────────
+// La planilla trae datos institucionales, así que no se muestra nada hasta identificarse.
+// Quién puede entrar NO se decide aquí (eso sería falsa seguridad): lo deciden las reglas
+// de Firestore, que solo dejan leer/escribir a los correos autorizados. Si un correo no
+// está en esa lista, entra a Firebase pero la planilla le niega los datos y se le avisa.
+function mensajeAuth(e) {
+  var m = {
+    'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    'auth/wrong-password':     'Contraseña incorrecta.',
+    'auth/user-not-found':     'Ese correo no tiene cuenta. Pídele al administrador que te la cree.',
+    'auth/invalid-email':      'El correo no es válido.',
+    'auth/too-many-requests':  'Demasiados intentos. Espere unos minutos.',
+    'auth/network-request-failed': 'Sin conexión con el servidor.'
+  };
+  return m[e && e.code] || ('Error: ' + ((e && e.message) || 'desconocido'));
+}
+function loginMsg(txt, ok) {
+  var el = document.getElementById('li-msg');
+  if (el) { el.textContent = txt; el.className = 'login-msg ' + (ok ? 'ok' : 'err'); }
+}
+function mostrarLogin() {
+  document.getElementById('loginOv').classList.add('abierto');
+  document.getElementById('sesion').innerHTML = '';
+  var p = document.getElementById('li-pass'); if (p) p.value = '';
+}
+function ocultarLogin() {
+  document.getElementById('loginOv').classList.remove('abierto');
+}
+function pintarSesion(u) {
+  var el = document.getElementById('sesion');
+  if (el) {
+    el.textContent = u.email + ' ';
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = 'Salir';
+    b.onclick = function () { if (confirm('¿Cerrar sesión?')) _auth.signOut(); };
+    el.appendChild(b);
+  }
+}
+
+if (_nubeOn) {
+  document.getElementById('loginForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var btn = document.getElementById('li-btn');
+    btn.disabled = true;
+    loginMsg('Ingresando…', true);
+    _auth.signInWithEmailAndPassword(
+      document.getElementById('li-email').value.trim(),
+      document.getElementById('li-pass').value
+    ).catch(function (err) { loginMsg(mensajeAuth(err), false); })
+     .finally(function () { btn.disabled = false; });
+  });
+  document.getElementById('li-olvide').addEventListener('click', function () {
+    var em = document.getElementById('li-email').value.trim();
+    if (!em) { loginMsg('Escriba primero su correo arriba.', false); return; }
+    _auth.sendPasswordResetEmail(em)
+      .then(function () { loginMsg('Le enviamos un correo para cambiar la contraseña.', true); })
+      .catch(function (err) { loginMsg(mensajeAuth(err), false); });
+  });
+}
 
 function nubeEstado(txt, cls) {
   var el = document.getElementById('nube-estado');
@@ -1583,37 +1712,118 @@ function nubeEstado(txt, cls) {
 
 function nubeGuardar() {
   if (!_nubeOn || !_nubeDoc || !_nubeListo) return;   // aún no lista: se ignora
+  _cambiosPendientes = true;
   clearTimeout(_nubeTimer);
   _nubeTimer = setTimeout(function () {
     // Todo el estado va como un solo texto JSON: así Firestore no se queja de los arrays
     // anidados (scores) ni de valores nulos.
     var payload = {
       data: JSON.stringify({ tareas: tareas, rows: rows, header: getHeaderConfig(), titulos: titulos, anchos: anchos }),
-      updatedAt: Date.now()
+      updatedAt: Date.now(),
+      cliente: MI_CLIENTE,
+      porEmail: (_auth && _auth.currentUser && _auth.currentUser.email) || ''
     };
     nubeEstado('☁ Guardando…', 'guardando');
     _nubeDoc.set(payload).then(function () {
+      _cambiosPendientes = false;
       nubeEstado('☁ Guardado en la nube', 'ok');
     }).catch(function (err) {
-      nubeEstado('💾 Local (nube bloqueada)', 'err');
-      if (window.console) console.warn('Firestore write bloqueado:', err && err.code);
+      var code = err && err.code;
+      if (code === 'permission-denied') {
+        nubeEstado('🔒 Sin permiso para guardar', 'err');
+      } else {
+        nubeEstado('💾 Local (nube bloqueada)', 'err');
+      }
+      if (window.console) console.warn('Firestore write bloqueado:', code);
     });
   }, 900);
 }
 
+// Convierte un documento de Firestore al estado de la app (o null si no sirve).
+function leerDoc(d) {
+  if (!d) return null;
+  try {
+    var obj = d.data ? JSON.parse(d.data) : d;   // texto JSON (o campos sueltos, por compatibilidad)
+    if (!obj || !Array.isArray(obj.tareas) || !Array.isArray(obj.rows)) return null;
+    obj.updatedAt = d.updatedAt || obj.updatedAt || 0;
+    obj.porEmail  = d.porEmail || '';
+    return obj;
+  } catch (e) { return null; }
+}
+
 function nubeCargar() {
-  return new Promise(function (resolve) {
+  return new Promise(function (resolve, reject) {
     if (!_nubeOn || !_nubeDoc) return resolve(null);
     _nubeDoc.get().then(function (snap) {
-      if (!snap || !snap.exists) return resolve(null);
-      var d = snap.data() || {};
-      try {
-        var obj = d.data ? JSON.parse(d.data) : d;   // texto JSON (o campos sueltos, por compatibilidad)
-        if (obj) obj.updatedAt = d.updatedAt || obj.updatedAt || 0;
-        resolve(obj);
-      } catch (e) { resolve(null); }
-    }).catch(function () { resolve(null); });
+      resolve(snap && snap.exists ? leerDoc(snap.data()) : null);
+    }).catch(function (err) { reject(err); });
   });
+}
+
+// Aplica en pantalla una versión que llegó de la nube.
+function aplicarRemoto(obj) {
+  tareas = obj.tareas;
+  rows   = obj.rows;
+  if (obj.titulos) Object.assign(titulos, obj.titulos);
+  if (obj.anchos)  Object.assign(anchos, obj.anchos);
+  filaActiva = null;
+  colActiva = { t: 0, si: 0 };
+  _nubeListo = false;                 // pintar dispara autoguardar; no rebotar a la nube
+  pintar(obj.header || null);
+  _nubeListo = true;
+  _cambiosPendientes = false;
+  try {
+    localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
+      tareas: tareas, rows: rows, header: obj.header, titulos: titulos, anchos: anchos,
+      savedAt: (obj.updatedAt || Date.now())
+    }));
+  } catch (e) {}
+}
+
+// ─── SINCRONIZACIÓN EN VIVO ─────────────────────────────────────────────────────
+// Antes la nube se leía UNA sola vez al abrir: si dos personas trabajaban a la vez, la
+// segunda pisaba a la primera sin que ninguna se enterara. Ahora la página escucha el
+// documento compartido: si no tienes cambios sin guardar, se actualiza sola; si estabas
+// editando, NO se toca nada y aparece un aviso para que tú decidas.
+function escucharNube() {
+  if (!_nubeOn || !_nubeDoc || _unsub) return;
+  _unsub = _nubeDoc.onSnapshot(function (snap) {
+    if (!snap.exists) return;
+    var d = snap.data() || {};
+    if (d.cliente === MI_CLIENTE) return;        // es el eco de mi propia escritura
+    var obj = leerDoc(d);
+    if (!obj) return;
+    if (_cambiosPendientes) { mostrarConflicto(obj); return; }
+    aplicarRemoto(obj);
+    nubeEstado('☁ Actualizado' + (obj.porEmail ? ' por ' + obj.porEmail : ''), 'ok');
+  }, function (err) {
+    if (window.console) console.warn('Escucha detenida:', err && err.code);
+  });
+}
+
+function mostrarConflicto(obj) {
+  _remotoEnEspera = obj;
+  var txt = document.getElementById('ac-texto');
+  if (txt) {
+    txt.textContent = (obj.porEmail ? obj.porEmail : 'Otra persona') +
+      ' guardó cambios en la planilla compartida mientras usted editaba.';
+  }
+  document.getElementById('avisoConflicto').classList.add('abierto');
+}
+
+function resolverConflicto(cual) {
+  document.getElementById('avisoConflicto').classList.remove('abierto');
+  if (cual === 'remoto' && _remotoEnEspera) {
+    if (!confirm('Se cargará la versión de la otra persona.\n\nSus cambios sin guardar se perderán. ¿Continuar?')) {
+      document.getElementById('avisoConflicto').classList.add('abierto');
+      return;
+    }
+    aplicarRemoto(_remotoEnEspera);
+    nubeEstado('☁ Sincronizado', 'ok');
+  } else {
+    nubeGuardar();   // conservar lo mío: se sube y pisa lo de la nube
+  }
+  _remotoEnEspera = null;
 }
 
 // ¿Estamos en celular/pantalla chica? (coincide con el @media (max-width:820px))
@@ -1682,45 +1892,72 @@ function pintar(headerCfg) {
   ajustarAltoTabla();
 }
 
-// Capturar la marca de tiempo del guardado local ANTES de renderizar (para comparar
-// con la nube y saber cuál es más nuevo).
-try { var _rawLocal = localStorage.getItem(AUTOSAVE_KEY); if (_rawLocal) _localSavedAt = (JSON.parse(_rawLocal).savedAt) || 0; } catch (e) {}
+// Pinta la planilla con el respaldo local (instantáneo, funciona sin internet).
+function arrancarApp() {
+  if (_appArrancada) return;
+  _appArrancada = true;
+  // Marca de tiempo del guardado local ANTES de renderizar, para comparar con la nube.
+  try { var raw = localStorage.getItem(AUTOSAVE_KEY); if (raw) _localSavedAt = (JSON.parse(raw).savedAt) || 0; } catch (e) {}
+  pintar(restaurarAutoguardado());
+  _initRenderDone = true;
+  setTimeout(posicionarTrabajo, 60);
+}
 
-// 1) Pinta de inmediato con el respaldo local: la página aparece al instante y funciona
-//    aunque no haya internet.
-const headerGuardado = restaurarAutoguardado();
-pintar(headerGuardado);
-_initRenderDone = true;
-
-// 2) Luego trae la versión compartida desde la nube y decide cuál conservar.
-nubeCargar().then(function (data) {
-  const cloudOk = data && Array.isArray(data.tareas) && Array.isArray(data.rows);
-  if (!_userEdited && cloudOk && (data.updatedAt || 0) >= _localSavedAt) {
-    // La nube tiene lo más nuevo (o igual): aplícala y respáldala localmente.
-    tareas = data.tareas;
-    rows = data.rows;
-    if (data.titulos) Object.assign(titulos, data.titulos);
-    if (data.anchos) Object.assign(anchos, data.anchos);
-    pintar(data.header || null);
-    try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({ tareas: tareas, rows: rows, header: data.header, titulos: titulos, anchos: anchos, savedAt: (data.updatedAt || Date.now()) })); } catch (e) {}
-    nubeEstado('☁ Sincronizado con la nube', 'ok');
-    _nubeListo = true;
-  } else if (_nubeOn) {
-    // Lo de aquí es más nuevo (o la nube está vacía / el usuario ya editó): súbelo para
-    // que quede compartido.
-    nubeEstado('☁ Nube conectada', 'ok');
-    _nubeListo = true;
-    nubeGuardar();
-  } else {
+// Trae la versión compartida, decide cuál conservar y queda escuchando en vivo.
+function sincronizarInicial() {
+  nubeCargar().then(function (data) {
+    if (data && !_userEdited && (data.updatedAt || 0) >= _localSavedAt) {
+      aplicarRemoto(data);                       // la nube tiene lo más nuevo
+      nubeEstado('☁ Sincronizado con la nube', 'ok');
+      _nubeListo = true;
+    } else {
+      // Lo de aquí es más nuevo (o la nube está vacía / ya edité): súbelo.
+      nubeEstado('☁ Nube conectada', 'ok');
+      _nubeListo = true;
+      nubeGuardar();
+    }
+    escucharNube();
+  }).catch(function (err) {
+    if (err && err.code === 'permission-denied') {
+      // El correo entró a Firebase pero NO está autorizado en las reglas de esta planilla.
+      _nubeListo = false;
+      alert('Su cuenta no está autorizada para abrir esta planilla.\n\n' +
+            'Solicite el acceso al administrador (marcoaraya1973@gmail.com).');
+      if (_auth) _auth.signOut();
+      return;
+    }
     nubeEstado('💾 Solo local (sin nube)', 'err');
     _nubeListo = true;
-  }
-}).catch(function () {
+  });
+}
+
+if (_nubeOn) {
+  // Con Firebase disponible no se muestra nada hasta identificarse: el login tapa la
+  // página desde el primer instante, antes de saber si hay sesión abierta.
+  mostrarLogin();
+  _auth.onAuthStateChanged(function (u) {
+    if (u) {
+      ocultarLogin();
+      pintarSesion(u);
+      arrancarApp();
+      sincronizarInicial();
+    } else if (_appArrancada) {
+      // Cerró sesión teniendo la planilla abierta: se borra el respaldo local y se recarga,
+      // para no dejar datos institucionales a la vista del siguiente que use este equipo.
+      if (_unsub) { _unsub(); _unsub = null; }
+      _nubeListo = false;
+      try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+      location.reload();
+    } else {
+      mostrarLogin();   // arranque sin sesión previa
+    }
+  });
+} else {
+  // Sin Firebase (sin internet o SDK bloqueado): modo local, como antes.
   nubeEstado('💾 Solo local (sin nube)', 'err');
   _nubeListo = true;
-});
-
-window.addEventListener('load', function () { setTimeout(posicionarTrabajo, 60); });
+  arrancarApp();
+}
 </script>
 
 
