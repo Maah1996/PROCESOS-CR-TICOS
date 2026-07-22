@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.0';
+var APP_VER = '1.5.1';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2321,6 +2321,12 @@ function catNormalizar() {
   }
   if (!catalogo.asignaciones || typeof catalogo.asignaciones !== 'object') catalogo.asignaciones = {};
   if (!catalogo.usuarios || typeof catalogo.usuarios !== 'object') catalogo.usuarios = {};
+  // Deja el nombre limpio aunque se haya tecleado con el sufijo ("DeptoI@proc.cl" → "DeptoI").
+  Object.keys(catalogo.usuarios).forEach(function (em) {
+    var u = catalogo.usuarios[em] || {};
+    catalogo.usuarios[em] = { depto: u.depto || '', nombre: correoAUsuario(u.nombre || em),
+                              creado: u.creado || 0, por: u.por || '' };
+  });
   // Rescata lo que quedó guardado con el esquema anterior (depto → [correos]).
   Object.keys(catalogo.asignaciones).forEach(function (d) {
     (catalogo.asignaciones[d] || []).forEach(function (em) {
@@ -2645,7 +2651,8 @@ function catRenderUsuarios() {
   } else {
     correos.forEach(function (em) {
       var u = catalogo.usuarios[em];
-      html += '<tr><td>' + escapeHtml(u.nombre || correoAUsuario(em)) + '</td>' +
+      // correoAUsuario también limpia los nombres que se guardaron con el sufijo escrito a mano.
+      html += '<tr><td>' + escapeHtml(correoAUsuario(u.nombre || em)) + '</td>' +
         '<td>' + escapeHtml(u.depto || '—') + '</td>' +
         '<td style="color:#777;">' + escapeHtml(em) + '</td>' +
         '<td class="u-acc"><button onclick="catCambiarDeptoUsuario(\'' + escapeHtml(em) + '\')">Depto.</button>' +
@@ -2661,7 +2668,8 @@ async function catCrearUsuario() {
   var datos = await catFormulario(
     'La persona entrará escribiendo solo su nombre de usuario y la contraseña.',
     [
-      { id: 'usuario', etiqueta: 'Nombre de usuario', pista: 'DeptoI' },
+      { id: 'usuario', etiqueta: 'Nombre de usuario (sin “' + USUARIO_SUFIJO + '”: se agrega solo)',
+        pista: 'DeptoI' },
       { id: 'clave', etiqueta: 'Contraseña (mínimo 6 caracteres)', tipo: 'password' },
       { id: 'depto', etiqueta: 'Departamento que podrá editar', tipo: 'select', valor: _catSel,
         opciones: catDeptosOrdenados().map(function (d) {
@@ -2701,7 +2709,8 @@ async function catCrearUsuario() {
     return;
   }
 
-  catalogo.usuarios[correo] = { depto: datos.depto, nombre: usuario, creado: Date.now(), por: catEmail() };
+  catalogo.usuarios[correo] = { depto: datos.depto, nombre: correoAUsuario(usuario),
+                                creado: Date.now(), por: catEmail() };
   catRender();
   catGuardarConfig();
   await catAviso('El usuario ya puede entrar con su nombre y la contraseña que usted definió. ' +
