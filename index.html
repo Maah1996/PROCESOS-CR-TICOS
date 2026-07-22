@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.4.1';
+var APP_VER = '1.4.2';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -256,6 +256,8 @@ var APP_VER = '1.4.1';
              border-bottom: 2px solid #375623; padding-bottom: 8px; margin-bottom: 14px; }
   .cat-cab h2 { font-size: 17px; color: #375623; }
   .cat-cab .cat-quien { font-size: 11px; color: #555; }
+  /* Versión a la vista: permite confirmar de un vistazo si el navegador tomó la versión nueva */
+  .cat-ver { font-size: 10px; color: #888; font-weight: normal; vertical-align: middle; }
   .cat-barra { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
   .cat-campo label { display: block; font-size: 10px; color: #555; margin-bottom: 2px; }
   .cat-campo select { font-family: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid #999; min-width: 260px; }
@@ -344,7 +346,7 @@ var APP_VER = '1.4.1';
 <div class="cat-pantalla no-print" id="catPantalla">
   <div class="cat-cab">
     <div>
-      <h2>Gestión de procesos por departamento</h2>
+      <h2>Gestión de procesos por departamento <span class="cat-ver" id="cat-ver"></span></h2>
       <div class="cat-quien" id="cat-quien"></div>
     </div>
     <div>
@@ -2179,6 +2181,9 @@ function catCambiarDepto(v) { _catSel = v; _catEditando = null; catRender(); }
 function catRender() {
   catNormalizar();
   var admin = catEsAdmin(), mio = catMiDepto();
+
+  var ver = document.getElementById('cat-ver');
+  if (ver) ver.textContent = 'v' + APP_VER;
 
   var quien = document.getElementById('cat-quien');
   if (quien) {
