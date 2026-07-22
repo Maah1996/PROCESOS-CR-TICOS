@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.4.3';
+var APP_VER = '1.5.0';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -325,6 +325,19 @@ var APP_VER = '1.4.3';
   .dlg-pie button.sec { background: #fff; color: #444; border: 1px solid #b0b0b0; }
   .dlg-pie button.peligro { background: #c0504d; }
   .dlg-pie button:hover { opacity: .88; }
+  .dlg-campo { margin-top: 10px; }
+  .dlg-campo label { display: block; font-size: 11px; color: #555; margin-bottom: 2px; }
+  .dlg-campo select { font-family: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid #999;
+                      width: 100%; box-sizing: border-box; }
+
+  /* Tabla de usuarios del panel de administración */
+  .cat-usuarios { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+  .cat-usuarios th { background: #dbe5f1; border: 1px solid #7f7f7f; padding: 4px 6px; font-size: 10px; }
+  .cat-usuarios td { border: 1px solid #bfbfbf; padding: 4px 6px; }
+  .cat-usuarios td.u-acc { text-align: center; width: 130px; min-width: 130px; white-space: nowrap; }
+  .cat-usuarios td.u-acc button { font-family: inherit; font-size: 10px; border: 1px solid #bfbfbf;
+                                  background: #f3f3f3; cursor: pointer; padding: 2px 6px; }
+  .cat-usuarios td.u-vacio { color: #999; font-style: italic; text-align: center; padding: 10px; }
 
   /* ── MÓVIL / CELULAR ──────────────────────────────────────────────────────────
      La tabla es ancha (pensada para PC). En el celular: el membrete se apila, la
@@ -356,8 +369,8 @@ var APP_VER = '1.4.3';
   <form class="login-caja" id="loginForm">
     <h2>Análisis de Procesos Críticos</h2>
     <div class="login-sub">V División — acceso restringido</div>
-    <label for="li-email">Correo institucional</label>
-    <input type="email" id="li-email" autocomplete="username" required>
+    <label for="li-email">Usuario</label>
+    <input type="text" id="li-email" autocomplete="username" required placeholder="DeptoI">
     <label for="li-pass">Contraseña</label>
     <input type="password" id="li-pass" autocomplete="current-password" required>
     <button type="submit" class="primario" id="li-btn">Ingresar</button>
@@ -431,9 +444,13 @@ var APP_VER = '1.4.3';
     <button class="cat-btn gris" onclick="catAgregarDepto()">+ Agregar departamento</button>
     <button class="cat-btn gris" onclick="catRenombrarDepto()">Renombrar departamento</button>
     <button class="cat-btn rojo" onclick="catEliminarDepto()">Eliminar departamento</button>
-    <button class="cat-btn gris" onclick="catAsignarCorreo()">Asignar correos a un depto.</button>
     <button class="cat-btn gris" onclick="catImportarDesdePlanilla()">Importar desde la planilla</button>
     <button class="cat-btn azul" id="cat-b-cargar" onclick="catSincronizarPlanilla()">▾ Cargar catálogo en la planilla</button>
+
+    <h3 style="margin-top:12px;">Usuarios del sistema
+      <button class="cat-btn" style="margin-left:8px;" onclick="catCrearUsuario()">+ Crear usuario</button>
+    </h3>
+    <table class="cat-usuarios" id="cat-usuarios"></table>
 
     <h3 style="margin-top:12px;">Estado de certificación por departamento</h3>
     <table class="cat-tablero" id="cat-tablero"></table>
@@ -1806,17 +1823,36 @@ var _remotoEnEspera = null;     // versión de otra persona esperando que yo dec
 // y no repintar la pantalla con lo que yo mismo acabo de guardar.
 var MI_CLIENTE = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
+// Sufijo interno de los nombres de usuario. Firebase solo entiende correo y contraseña,
+// así que "DeptoI" se convierte por dentro en "deptoi@proc.cl". El usuario nunca lo ve.
+// OJO: ese buzón no existe, así que esas cuentas NO pueden recuperar la clave por correo;
+// si alguien la olvida, el administrador borra la cuenta en la consola de Firebase y la
+// vuelve a crear desde la pantalla (los procesos no se pierden: viven en Firestore).
+var USUARIO_SUFIJO = '@proc.cl';
+function usuarioACorreo(txt) {
+  var t = String(txt || '').trim().toLowerCase();
+  if (!t) return '';
+  return t.indexOf('@') >= 0 ? t : t + USUARIO_SUFIJO;   // con @ se respeta el correo real
+}
+function correoAUsuario(em) {
+  var t = String(em || '').trim();
+  return t.slice(-USUARIO_SUFIJO.length).toLowerCase() === USUARIO_SUFIJO
+    ? t.slice(0, -USUARIO_SUFIJO.length) : t;
+}
+
+var FB_CFG = {
+  apiKey: 'AIzaSyDi6CPHzqfAvRbofkB4cW4bFRWb9VcU9kQ',
+  authDomain: 'mapa-plano-montichef.firebaseapp.com',
+  projectId: 'mapa-plano-montichef',
+  storageBucket: 'mapa-plano-montichef.firebasestorage.app',
+  messagingSenderId: '18469178569',
+  appId: '1:18469178569:web:92d72ee3e0e0e399619118'
+};
+
 (function initNube() {
   try {
     if (typeof firebase === 'undefined') return;   // sin internet/SDK: solo local
-    var cfg = {
-      apiKey: 'AIzaSyDi6CPHzqfAvRbofkB4cW4bFRWb9VcU9kQ',
-      authDomain: 'mapa-plano-montichef.firebaseapp.com',
-      projectId: 'mapa-plano-montichef',
-      storageBucket: 'mapa-plano-montichef.firebasestorage.app',
-      messagingSenderId: '18469178569',
-      appId: '1:18469178569:web:92d72ee3e0e0e399619118'
-    };
+    var cfg = FB_CFG;
     if (!firebase.apps.length) firebase.initializeApp(cfg);
     _nubeDoc = firebase.firestore().collection('procesos_criticos').doc('principal');
     _auth = firebase.auth();
@@ -1833,8 +1869,8 @@ function mensajeAuth(e) {
   var m = {
     'auth/invalid-credential': 'Correo o contraseña incorrectos.',
     'auth/wrong-password':     'Contraseña incorrecta.',
-    'auth/user-not-found':     'Ese correo no tiene cuenta. Pídele al administrador que te la cree.',
-    'auth/invalid-email':      'El correo no es válido.',
+    'auth/user-not-found':     'Ese usuario no existe. Pídale al administrador que le cree la cuenta.',
+    'auth/invalid-email':      'El usuario tiene caracteres que no se admiten.',
     'auth/too-many-requests':  'Demasiados intentos. Espere unos minutos.',
     'auth/network-request-failed': 'Sin conexión con el servidor.'
   };
@@ -1855,7 +1891,7 @@ function ocultarLogin() {
 function pintarSesion(u) {
   var el = document.getElementById('sesion');
   if (el) {
-    el.textContent = u.email + ' ';
+    el.textContent = correoAUsuario(u.email) + ' ';
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = 'Salir';
     b.onclick = function () { if (confirm('¿Cerrar sesión?')) _auth.signOut(); };
@@ -1870,14 +1906,20 @@ if (_nubeOn) {
     btn.disabled = true;
     loginMsg('Ingresando…', true);
     _auth.signInWithEmailAndPassword(
-      document.getElementById('li-email').value.trim(),
+      usuarioACorreo(document.getElementById('li-email').value),
       document.getElementById('li-pass').value
     ).catch(function (err) { loginMsg(mensajeAuth(err), false); })
      .finally(function () { btn.disabled = false; });
   });
   document.getElementById('li-olvide').addEventListener('click', function () {
-    var em = document.getElementById('li-email').value.trim();
-    if (!em) { loginMsg('Escriba primero su correo arriba.', false); return; }
+    var em = usuarioACorreo(document.getElementById('li-email').value);
+    if (!em) { loginMsg('Escriba primero su usuario arriba.', false); return; }
+    if (em.slice(-USUARIO_SUFIJO.length) === USUARIO_SUFIJO) {
+      // Cuenta de nombre de usuario: no hay buzón donde enviar nada.
+      loginMsg('Su cuenta no tiene correo asociado. Pídale al administrador que le ' +
+               'restablezca la contraseña.', false);
+      return;
+    }
     _auth.sendPasswordResetEmail(em)
       .then(function () { loginMsg('Le enviamos un correo para cambiar la contraseña.', true); })
       .catch(function (err) { loginMsg(mensajeAuth(err), false); });
@@ -2104,7 +2146,7 @@ var _catEditando = null; // id del proceso que se está editando en la fila
 // dice…") y rompen la presentación del documento. Estos tres los reemplazan con el
 // mismo tipo de letra y colores del sistema, y permiten poner en los botones lo que
 // realmente hacen ("Eliminar" / "Conservar") en vez de "Aceptar" / "Cancelar".
-var _dlgResolver = null;
+var _dlgResolver = null, _dlgValores = null;
 
 function catDlgTexto(s) { return escapeHtml(String(s == null ? '' : s)).replace(/\n/g, '<br>'); }
 
@@ -2113,8 +2155,9 @@ function catDialogo(o) {
     if (_dlgResolver) _dlgResolver(false);   // cierra uno anterior que quedara abierto
     var ov = document.getElementById('catDlg');
     document.getElementById('catDlgTitulo').textContent = o.titulo || 'Aviso';
-    document.getElementById('catDlgCuerpo').innerHTML =
-      catDlgTexto(o.mensaje) + (o.detalle ? '<div class="dlg-detalle">' + catDlgTexto(o.detalle) + '</div>' : '');
+    document.getElementById('catDlgCuerpo').innerHTML = o.html
+      ? o.html
+      : catDlgTexto(o.mensaje) + (o.detalle ? '<div class="dlg-detalle">' + catDlgTexto(o.detalle) + '</div>' : '');
     var inp = document.getElementById('catDlgInput');
     inp.style.display = (o.tipo === 'pedir') ? '' : 'none';
     inp.value = o.valor || '';
@@ -2124,8 +2167,14 @@ function catDialogo(o) {
     bCa.textContent = o.cancelar || 'Cancelar';
     bCa.style.display = (o.tipo === 'aviso') ? 'none' : '';
     ov.classList.add('abierto');
-    setTimeout(function () { (o.tipo === 'pedir' ? inp : bOk).focus(); }, 30);
+    var primero = document.querySelector('#catDlgCuerpo input, #catDlgCuerpo select');
+    setTimeout(function () { (o.tipo === 'pedir' ? inp : (primero || bOk)).focus(); }, 30);
     _dlgResolver = function (ok) {
+      // Los valores se leen ANTES de cerrar: al vaciar el cuerpo los campos dejan de existir.
+      _dlgValores = {};
+      Array.prototype.forEach.call(document.querySelectorAll('#catDlgCuerpo [id^="fx-"]'), function (el) {
+        _dlgValores[el.id.slice(3)] = el.value;
+      });
       ov.classList.remove('abierto');
       _dlgResolver = null;
       resolve(o.tipo === 'pedir' ? (ok ? inp.value : null) : !!ok);
@@ -2156,16 +2205,48 @@ function catPedir(mensaje, valor, o) {
                       valor: valor, ok: o.ok || 'Guardar' });
 }
 
+// Diálogo con varios campos. `campos` = [{ id, etiqueta, tipo, valor, opciones }].
+// Resuelve con un objeto { id: valor } o con null si se cancela.
+function catFormulario(mensaje, campos, o) {
+  o = o || {};
+  var html = catDlgTexto(mensaje);
+  campos.forEach(function (c) {
+    html += '<div class="dlg-campo"><label for="fx-' + c.id + '">' + escapeHtml(c.etiqueta) + '</label>';
+    if (c.tipo === 'select') {
+      html += '<select id="fx-' + c.id + '">' + (c.opciones || []).map(function (op) {
+        return '<option value="' + escapeHtml(op.valor) + '"' + (op.valor === c.valor ? ' selected' : '') +
+               '>' + escapeHtml(op.texto) + '</option>';
+      }).join('') + '</select>';
+    } else {
+      html += '<input type="' + (c.tipo || 'text') + '" id="fx-' + c.id + '" value="' +
+              escapeHtml(c.valor || '') + '"' + (c.pista ? ' placeholder="' + escapeHtml(c.pista) + '"' : '') + '>';
+    }
+    html += '</div>';
+  });
+  return catDialogo({ tipo: 'formulario', titulo: o.titulo || 'Datos', html: html,
+                      ok: o.ok || 'Guardar', cancelar: o.cancelar })
+    .then(function (ok) {
+      if (!ok) return null;
+      var r = {};
+      campos.forEach(function (c) { r[c.id] = (_dlgValores && _dlgValores[c.id]) || ''; });
+      return r;
+    });
+}
+
 function catEmail() { return ((_auth && _auth.currentUser && _auth.currentUser.email) || '').toLowerCase(); }
 function catEsAdmin() {
   if (!_nubeOn) return true;   // sin Firebase la página trabaja local: nadie a quién limitar
   return CAT_ADMINS.indexOf(catEmail()) >= 0;
 }
 function catMiDepto() {
-  var em = catEmail(), r = null;
+  var em = catEmail();
+  if (!em) return null;
+  var u = (catalogo.usuarios || {})[em];
+  if (u && u.depto) return u.depto;
+  // Compatibilidad con la versión anterior, que guardaba depto → [correos].
+  var r = null;
   Object.keys(catalogo.asignaciones || {}).forEach(function (d) {
-    var lista = catalogo.asignaciones[d] || [];
-    if (lista.indexOf(em) >= 0) r = d;
+    if ((catalogo.asignaciones[d] || []).indexOf(em) >= 0) r = d;
   });
   return r;
 }
@@ -2239,6 +2320,13 @@ function catNormalizar() {
     catalogo.deptos = CAT_DEPTOS_INICIAL.map(function (d) { return { id: d.id, nombre: d.nombre }; });
   }
   if (!catalogo.asignaciones || typeof catalogo.asignaciones !== 'object') catalogo.asignaciones = {};
+  if (!catalogo.usuarios || typeof catalogo.usuarios !== 'object') catalogo.usuarios = {};
+  // Rescata lo que quedó guardado con el esquema anterior (depto → [correos]).
+  Object.keys(catalogo.asignaciones).forEach(function (d) {
+    (catalogo.asignaciones[d] || []).forEach(function (em) {
+      if (!catalogo.usuarios[em]) catalogo.usuarios[em] = { depto: d, nombre: correoAUsuario(em) };
+    });
+  });
   catalogo.deptos = catalogo.deptos.map(function (d) {
     return { id: String(d.id || '').toUpperCase().trim(), nombre: String(d.nombre || '').trim() };
   }).filter(function (d) { return d.id; });
@@ -2283,7 +2371,7 @@ function catRender() {
 
   var quien = document.getElementById('cat-quien');
   if (quien) {
-    quien.textContent = (catEmail() || 'Modo local') + (admin ? ' — Administrador (ve y edita todos los departamentos)'
+    quien.textContent = (correoAUsuario(catEmail()) || 'Modo local') + (admin ? ' — Administrador (ve y edita todos los departamentos)'
       : (mio ? ' — Depto. ' + mio + (catDeptoNombre(mio) ? ' "' + catDeptoNombre(mio) + '"' : '')
              : ' — su correo aún no tiene departamento asignado (solo lectura)'));
   }
@@ -2349,7 +2437,7 @@ function catRender() {
     catProcesos.length + ' en total';
 
   catRenderCertif();
-  if (admin) catRenderTablero();
+  if (admin) { catRenderUsuarios(); catRenderTablero(); }
 }
 
 // Franja de certificación + habilitación del paso a la planilla.
@@ -2539,23 +2627,121 @@ async function catEliminarDepto() {
   catGuardarConfig();
   catBorrarDepto(depto);
 }
-async function catAsignarCorreo() {
+// ── Usuarios del sistema (solo administrador) ─────────────────────────────────
+// La cuenta se crea en una segunda conexión a Firebase ("alta"), porque crear un
+// usuario deja la sesión abierta con ESE usuario: si se hiciera en la conexión
+// principal, el administrador quedaría desconectado en cada alta.
+function catRenderUsuarios() {
+  var t = document.getElementById('cat-usuarios');
+  if (!t) return;
+  var correos = Object.keys(catalogo.usuarios || {}).sort(function (a, b) {
+    var d = catOrden(catalogo.usuarios[a].depto) - catOrden(catalogo.usuarios[b].depto);
+    return d !== 0 ? d : (a < b ? -1 : 1);
+  });
+  var html = '<tr><th style="width:150px;">Usuario</th><th style="width:80px;">Depto.</th>' +
+             '<th>Cuenta interna</th><th class="u-acc">&nbsp;</th></tr>';
+  if (!correos.length) {
+    html += '<tr><td colspan="4" class="u-vacio">No hay usuarios registrados. Use “+ Crear usuario”.</td></tr>';
+  } else {
+    correos.forEach(function (em) {
+      var u = catalogo.usuarios[em];
+      html += '<tr><td>' + escapeHtml(u.nombre || correoAUsuario(em)) + '</td>' +
+        '<td>' + escapeHtml(u.depto || '—') + '</td>' +
+        '<td style="color:#777;">' + escapeHtml(em) + '</td>' +
+        '<td class="u-acc"><button onclick="catCambiarDeptoUsuario(\'' + escapeHtml(em) + '\')">Depto.</button>' +
+        '<button onclick="catQuitarUsuario(\'' + escapeHtml(em) + '\')">Quitar</button></td></tr>';
+    });
+  }
+  t.innerHTML = html;
+}
+
+async function catCrearUsuario() {
   if (!catEsAdmin()) return;
-  if (!_catSel) { await catAviso('Elija primero el departamento en el desplegable.'); return; }
-  var actuales = (catalogo.asignaciones[_catSel] || []).join(', ');
-  var txt = await catPedir('Correos autorizados para editar el Depto. ' + _catSel +
-    ', separados por coma. Deje el campo vacío para quitarlos a todos.', actuales,
-    { titulo: 'Correos del Depto. ' + _catSel });
-  if (txt === null) return;
-  var lista = txt.split(',').map(function (s) { return s.toLowerCase().trim(); }).filter(function (s) { return s; });
-  if (lista.length) catalogo.asignaciones[_catSel] = lista;
-  else delete catalogo.asignaciones[_catSel];
+  if (!_nubeOn) { await catAviso('Sin conexión con Firebase no se pueden crear cuentas.'); return; }
+  var datos = await catFormulario(
+    'La persona entrará escribiendo solo su nombre de usuario y la contraseña.',
+    [
+      { id: 'usuario', etiqueta: 'Nombre de usuario', pista: 'DeptoI' },
+      { id: 'clave', etiqueta: 'Contraseña (mínimo 6 caracteres)', tipo: 'password' },
+      { id: 'depto', etiqueta: 'Departamento que podrá editar', tipo: 'select', valor: _catSel,
+        opciones: catDeptosOrdenados().map(function (d) {
+          return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
+        }) }
+    ],
+    { titulo: 'Crear usuario', ok: 'Crear cuenta' });
+  if (!datos) return;
+
+  var usuario = (datos.usuario || '').trim();
+  if (!usuario) { await catAviso('Escriba el nombre de usuario.'); return; }
+  if (!/^[A-Za-z0-9._-]+$/.test(usuario) && usuario.indexOf('@') < 0) {
+    await catAviso('El nombre de usuario solo admite letras, números, punto, guion y guion bajo. ' +
+                   'Sin espacios ni tildes.'); return;
+  }
+  if ((datos.clave || '').length < 6) { await catAviso('La contraseña debe tener al menos 6 caracteres.'); return; }
+  var correo = usuarioACorreo(usuario);
+  if (catalogo.usuarios[correo]) { await catAviso('El usuario ' + usuario + ' ya está registrado.'); return; }
+
+  catEstado('☁ Creando la cuenta…', '');
+  var appAlta;
+  try {
+    appAlta = firebase.apps.filter(function (a) { return a.name === 'alta'; })[0] ||
+              firebase.initializeApp(FB_CFG, 'alta');
+    await appAlta.auth().createUserWithEmailAndPassword(correo, datos.clave);
+    await appAlta.auth().signOut();   // la sesión del administrador queda intacta
+  } catch (err) {
+    catEstado('', '');
+    var m = { 'auth/email-already-in-use': 'Ya existe una cuenta con ese nombre de usuario. Si es de alguien ' +
+                'que ya no está, bórrela primero en la consola de Firebase.',
+              'auth/weak-password': 'La contraseña es demasiado débil.',
+              'auth/invalid-email': 'El nombre de usuario tiene caracteres que no se admiten.',
+              'auth/operation-not-allowed': 'Firebase tiene desactivada la creación de cuentas con ' +
+                'correo y contraseña. Actívela en Authentication → Sign-in method.' };
+    await catAviso(m[err && err.code] || ('No se pudo crear la cuenta: ' + ((err && err.message) || 'error desconocido')),
+      { titulo: 'No se creó el usuario' });
+    return;
+  }
+
+  catalogo.usuarios[correo] = { depto: datos.depto, nombre: usuario, creado: Date.now(), por: catEmail() };
   catRender();
   catGuardarConfig();
-  await catAviso('Cada correo debe estar además en la lista de las reglas de Firestore para poder ' +
-    'abrir la aplicación. El bloqueo por departamento lo aplican esas reglas, no esta página.',
-    { titulo: 'Correos guardados',
-      detalle: lista.length ? lista.join('\n') : 'El Depto. ' + _catSel + ' quedó sin correos asignados.' });
+  await catAviso('El usuario ya puede entrar con su nombre y la contraseña que usted definió. ' +
+    'Anótela y entréguesela: nadie más puede verla después.',
+    { titulo: 'Usuario creado',
+      detalle: 'Usuario: ' + usuario + '\nDepartamento: ' + datos.depto + '\nCuenta interna: ' + correo });
+}
+
+async function catCambiarDeptoUsuario(correo) {
+  if (!catEsAdmin()) return;
+  var u = catalogo.usuarios[correo];
+  if (!u) return;
+  var datos = await catFormulario('Departamento que podrá editar ' + (u.nombre || correoAUsuario(correo)) + '.',
+    [{ id: 'depto', etiqueta: 'Departamento', tipo: 'select', valor: u.depto,
+       opciones: catDeptosOrdenados().map(function (d) {
+         return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
+       }) }],
+    { titulo: 'Cambiar departamento' });
+  if (!datos) return;
+  u.depto = datos.depto;
+  catRender();
+  catGuardarConfig();
+}
+
+async function catQuitarUsuario(correo) {
+  if (!catEsAdmin()) return;
+  var u = catalogo.usuarios[correo];
+  if (!u) return;
+  var ok = await catConfirmar('Perderá el acceso al sistema de inmediato. La cuenta seguirá existiendo ' +
+    'en Firebase: para borrarla del todo hay que eliminarla en la consola.',
+    { titulo: 'Quitar el acceso', peligro: true, ok: 'Quitar el acceso', cancelar: 'Conservar',
+      detalle: 'Usuario: ' + (u.nombre || correoAUsuario(correo)) + '\nDepartamento: ' + (u.depto || '—') });
+  if (!ok) return;
+  delete catalogo.usuarios[correo];
+  Object.keys(catalogo.asignaciones).forEach(function (d) {
+    catalogo.asignaciones[d] = (catalogo.asignaciones[d] || []).filter(function (e) { return e !== correo; });
+    if (!catalogo.asignaciones[d].length) delete catalogo.asignaciones[d];
+  });
+  catRender();
+  catGuardarConfig();
 }
 
 // Rescata los procesos que ya están escritos en la planilla y arma el catálogo con ellos
@@ -2636,7 +2822,8 @@ function catGuardarConfig() {
   if (!_nubeOn || !_catCfgDoc) { catEstado('💾 Guardado local (sin nube)', 'err'); return; }
   _catCfgDoc.set({
     data: JSON.stringify({ deptos: catalogo.deptos }),
-    asignaciones: catalogo.asignaciones,   // campo real (no texto): las reglas lo leen
+    usuarios: catalogo.usuarios,           // campo real (no texto): las reglas lo leen
+    asignaciones: catalogo.asignaciones,   // esquema anterior, se conserva por compatibilidad
     updatedAt: Date.now(),
     cliente: MI_CLIENTE,
     porEmail: catEmail()
@@ -2679,6 +2866,7 @@ function catArrancar() {
         var obj = d.data ? JSON.parse(d.data) : {};
         if (Array.isArray(obj.deptos) && obj.deptos.length) catalogo.deptos = obj.deptos;
       } catch (e) {}
+      catalogo.usuarios = d.usuarios || {};
       catalogo.asignaciones = d.asignaciones || {};
       catGuardarLocal();
       if (_catEditando === null) catRender();
