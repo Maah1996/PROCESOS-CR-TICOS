@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.4.0';
+var APP_VER = '1.4.1';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2439,14 +2439,21 @@ function catAsignarCorreo() {
 // (para no volver a tipear los procesos la primera vez).
 function catImportarDesdePlanilla() {
   if (!catEsAdmin()) return;
-  var candidatos = rows.filter(function (r) { return (r.unidad || '').trim() || (r.proceso || '').trim(); });
-  if (!candidatos.length) { alert('La planilla no tiene procesos que importar.'); return; }
+  // Solo filas con unidad Y nombre: una fila a medio llenar en la planilla no es un
+  // proceso, y si entra al catálogo aparece como una línea en blanco.
+  var candidatos = rows.filter(function (r) { return (r.unidad || '').trim() && (r.proceso || '').trim(); });
+  var descartadas = rows.filter(function (r) {
+    var u = (r.unidad || '').trim(), p = (r.proceso || '').trim();
+    return (u || p) && !(u && p);
+  }).length;
+  if (!candidatos.length) { alert('La planilla no tiene procesos con unidad y nombre que importar.'); return; }
   if (!confirm('Se reemplazará el catálogo actual (' + catProcesos.length + ' procesos) por los ' +
-               candidatos.length + ' que hay hoy en la planilla, y se anularán las certificaciones. ¿Continuar?')) return;
+               candidatos.length + ' que hay hoy en la planilla, y se anularán las certificaciones.' +
+               (descartadas ? '\n\nSe omitirán ' + descartadas + ' fila(s) incompletas (sin unidad o sin nombre).' : '') +
+               '\n\n¿Continuar?')) return;
   var nuevos = [];
   candidatos.forEach(function (r) {
     var u = (r.unidad || '').toUpperCase().trim();
-    if (!u) return;
     if (!catalogo.deptos.some(function (d) { return d.id === u; })) catalogo.deptos.push({ id: u, nombre: '' });
     nuevos.push({ id: catNuevoId(), unidad: u, codigo: (r.codigo || '').trim(), nombre: (r.proceso || '').trim().toUpperCase() });
   });
