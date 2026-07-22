@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.1';
+var APP_VER = '1.5.2';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -403,6 +403,7 @@ var APP_VER = '1.5.1';
     </div>
     <div>
       <button class="cat-btn azul" id="cat-b-planilla" onclick="mostrarPlanilla()">Ir a la planilla general ▸</button>
+      <button class="cat-btn gris" id="cat-b-salir" onclick="cerrarSesion()">Salir</button>
     </div>
   </div>
 
@@ -1894,9 +1895,23 @@ function pintarSesion(u) {
     el.textContent = correoAUsuario(u.email) + ' ';
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = 'Salir';
-    b.onclick = function () { if (confirm('¿Cerrar sesión?')) _auth.signOut(); };
+    b.onclick = cerrarSesion;
     el.appendChild(b);
   }
+}
+
+// Salir. Está en las DOS pantallas: la de departamentos tapa la barra de la planilla,
+// así que sin un botón propio no había forma de cerrar sesión desde ahí.
+// Al salir se borra el respaldo local (equipo compartido); lo de la nube queda.
+function cerrarSesion() {
+  if (!_auth) return;
+  catConfirmar('Se cerrará su sesión y se borrará el respaldo guardado en este equipo. ' +
+    'Lo que está en la nube no se pierde.',
+    { titulo: 'Cerrar sesión', ok: 'Cerrar sesión', cancelar: 'Seguir trabajando',
+      detalle: _cambiosPendientes
+        ? 'Atención: hay cambios que la nube todavía no confirma. Espere a que diga "Guardado en la nube".'
+        : null
+    }).then(function (ok) { if (ok) _auth.signOut(); });
 }
 
 if (_nubeOn) {
@@ -2382,6 +2397,8 @@ function catRender() {
              : ' — su correo aún no tiene departamento asignado (solo lectura)'));
   }
   document.getElementById('cat-admin').style.display = admin ? '' : 'none';
+  // Sin Firebase no hay sesión que cerrar: el botón sobra.
+  document.getElementById('cat-b-salir').style.display = _nubeOn ? '' : 'none';
 
   // Desplegable: el administrador ve "todos"; los demás, solo su departamento.
   var sel = document.getElementById('cat-depto');
