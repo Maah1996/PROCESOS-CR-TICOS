@@ -198,13 +198,48 @@ excluir `catalogo` en escritura — agregar un bloque aparte no habría restring
 `procesos_deptos/{depto}` deja escribir al administrador, o a quien tenga su correo asignado
 a ese departamento en `procesos_criticos/catalogo`.
 
+### Correcciones y mejoras de la misma sesión
+
+**1.4.1 — La importación traía filas incompletas.**
+Una fila de la planilla con la unidad puesta pero sin nombre de proceso entraba al catálogo
+y aparecía como una línea en blanco (le pasó al Depto. V). Ahora solo se importan las filas
+que tienen unidad **y** nombre, y el aviso previo dice cuántas se omiten.
+
+**1.4.2 — Número de versión a la vista.**
+Al lado del título de la pantalla aparece la versión (`v1.4.3`). Sin eso no había forma de
+saber si el navegador ya había tomado la versión nueva o seguía con la del caché — problema
+real: el anti-caché no sirve para el propio salto de versión, porque el archivo viejo no
+sabe que existe uno nuevo. Ante la duda, **Ctrl+Shift+R** y mirar el número.
+
+**1.4.3 — Diálogos propios.**
+Los `alert`/`confirm`/`prompt` del navegador mostraban "maah1996.github.io dice…" y rompían
+la presentación del documento. Se reemplazaron por un cuadro con el mismo tipo de letra y
+colores del sistema. Tres mejoras de fondo, no solo de aspecto:
+
+- **Los botones dicen lo que hacen.** "Aceptar / Cancelar" era derechamente peligroso en el
+  mensaje de procesos fuera del catálogo ("Aceptar = eliminarlos, Cancelar = conservarlos").
+  Ahora dicen "Eliminarlos" / "Conservarlos al final", "Certificar" / "Volver a revisar",
+  "Reemplazar catálogo" / "Cancelar", "Cargar igual" / "Esperarlos". Los que borran algo van
+  en rojo.
+- **Las listas largas** (departamentos pendientes, procesos fuera del catálogo) van en un
+  bloque aparte con su propio desplazamiento, en vez de estirar el cuadro fuera de pantalla.
+- Enter acepta, Escape cancela.
+
+También se corrigió el mensaje de departamento vacío, que le decía "usted no tiene procesos"
+al administrador cuando miraba el departamento de otro.
+
 ### Estado al cierre de la sesión
 
-- **Versión publicada:** 1.4.0
+- **Versión publicada:** 1.4.3
+- **Commits:** `7ffb7a2` (pantalla + certificación), `46229e2` (filas incompletas),
+  `9753eae` (versión a la vista), `346a481` (diálogos propios)
 - Reglas de Firestore publicadas el 22 de julio de 2026.
 - Verificado en navegador con una copia sin Firebase (sin tocar los datos reales): bloqueo
-  del paso sin certificar, certificación, anulación al editar, estado vacío, y carga a la
-  planilla conservando los puntajes de los procesos existentes.
+  del paso sin certificar, certificación, anulación al editar, estado vacío, carga a la
+  planilla conservando los puntajes de los procesos existentes, y los diálogos nuevos.
+- Nota de método: el archivo se probó servido por `http://127.0.0.1` con una copia sin
+  Firebase. Abrirlo como `file://` no sirve — el panel de vista previa se queda pegado en
+  la primera dirección y no recarga.
 
 ### PENDIENTES (además de los de la Sesión 1)
 
@@ -217,3 +252,12 @@ a ese departamento en `procesos_criticos/catalogo`.
    pantalla (para escribir en él).
 7. **Repartir los procesos actuales.** Usar "Importar desde la planilla" una sola vez para
    que los procesos que hoy están en la planilla queden distribuidos por departamento.
+   Quedó pendiente rehacerlo con la versión 1.4.1 o superior: la primera importación se hizo
+   con la versión que traía las filas incompletas, así que el catálogo todavía tiene líneas
+   en blanco y marca 36 procesos donde hay muchos menos reales.
+8. **La mayoría de los departamentos no tiene procesos escritos.** En la planilla solo I, II
+   y V tienen nombres; III, IV, VI y VIII tienen la unidad marcada en filas vacías. No es una
+   falla: es justamente lo que la pantalla nueva viene a resolver, que cada jefe cargue los
+   suyos.
+9. **Diálogos de la planilla general (pantalla 2).** Siguen usando los cuadros del navegador.
+   Se dejaron así a propósito, es otro módulo; queda ofrecido igualarlos en una pasada aparte.
