@@ -127,3 +127,93 @@ Ahora la página escucha el documento compartido:
 - Tras cada cambio, abrir con **Ctrl+Shift+R** la primera vez.
 - Al publicar una versión nueva hay que **subir el número de `APP_VER`** en `index.html`.
 - Cada subida a GitHub se copia también a esta carpeta (quedan idénticos).
+
+---
+
+## Sesión 2 — 22 de julio de 2026
+
+### Lo que se pidió
+
+Una pantalla previa a la planilla donde cada departamento administre sus propios procesos
+(unidad, código y nombre), los revise y recién entonces pueda pasar a la planilla general.
+
+### Pantalla nueva: "Gestión de procesos por departamento"
+
+Es ahora la **puerta de entrada**: después del login se abre esta pantalla, no la planilla.
+Se pasa a la planilla con "Ir a la planilla general ▸" y se vuelve con el botón
+"◂ Procesos por Depto." de la barra superior.
+
+**Departamentos cargados:** I "Personal", II "Inteligencia", III "Operaciones",
+IV "Logística", V "Planes y Políticas", VI "Mando y Control", VIII "Finanzas" y COMPRED.
+El orden es romano de menor a mayor y **COMPRED siempre al final**, tanto en el desplegable
+como al pasar a la planilla. El administrador puede agregar, renombrar y eliminar
+departamentos; los nuevos se ordenan solos en su lugar.
+
+**Cada jefe ve solo su departamento.** El desplegable le queda fijo en el suyo y no ve el
+panel de administración. Si su departamento está vacío, la pantalla se lo dice y lo invita
+a cargar sus procesos; si ya tiene, los revisa, agrega o modifica.
+
+**El código se sugiere solo** siguiendo el correlativo del departamento (2.1, 2.2, 2.3…) y
+avisa si se repite uno.
+
+### Certificación (control de calidad antes de la planilla)
+
+Nadie pasa a la planilla sin declarar que revisó sus procesos. La franja de certificación
+queda verde con el correo, la fecha y la cantidad certificada.
+
+Lo importante: la certificación guarda una **huella del contenido**. Si después se edita
+cualquier proceso, la huella deja de coincidir, la certificación se anula sola y el paso se
+bloquea de nuevo. Así la firma siempre corresponde a lo que está guardado.
+
+El administrador pasa siempre (es quien consolida) y tiene un **tablero** con el estado de
+los 8 departamentos: certificado por quién y cuándo, pendiente, o sin procesos cargados.
+
+### Un documento por departamento
+
+Cada departamento guarda en `procesos_deptos/<DEPTO>`, no en un documento compartido.
+Dos razones: las reglas de Firestore pueden verificar **de verdad** que un jefe solo escriba
+en el suyo (con un documento único el límite habría sido solo de pantalla, saltable desde la
+consola del navegador), y dos jefes guardando a la misma hora no se pisan.
+
+La lista de departamentos y los correos asignados viven en `procesos_criticos/catalogo`,
+que solo escribe el administrador.
+
+### Cargar el catálogo en la planilla
+
+Lo hace solo el administrador. Sincroniza **conservando los puntajes**: los procesos que ya
+existen se reconocen por UNIDAD + CÓDIGO y mantienen sus notas intactas, solo se actualizan
+nombre y orden; los nuevos entran con las celdas vacías; los que se sacaron del catálogo se
+listan antes y se decide si se eliminan o se conservan al final. Si hay departamentos sin
+certificar, los nombra y pregunta antes de continuar.
+
+También quedó "Importar desde la planilla", que arma el catálogo con los procesos que ya
+están escritos, para no tipearlos de nuevo la primera vez.
+
+### Reglas de Firestore
+
+Se agregaron sin tocar las de FUF DS 44 ni las de `/users`. Detalle que importaba: las
+reglas se **suman**, así que la regla comodín de `procesos_criticos/{doc}` se modificó para
+excluir `catalogo` en escritura — agregar un bloque aparte no habría restringido nada.
+
+`procesos_deptos/{depto}` deja escribir al administrador, o a quien tenga su correo asignado
+a ese departamento en `procesos_criticos/catalogo`.
+
+### Estado al cierre de la sesión
+
+- **Versión publicada:** 1.4.0
+- Reglas de Firestore publicadas el 22 de julio de 2026.
+- Verificado en navegador con una copia sin Firebase (sin tocar los datos reales): bloqueo
+  del paso sin certificar, certificación, anulación al editar, estado vacío, y carga a la
+  planilla conservando los puntajes de los procesos existentes.
+
+### PENDIENTES (además de los de la Sesión 1)
+
+5. **Primer guardado del administrador.** La regla de los departamentos consulta
+   `procesos_criticos/catalogo`. Mientras ese documento no exista, los jefes reciben
+   "Sin permiso para guardar". Hay que entrar y usar "Asignar correos a un depto." una vez
+   para crearlo, ANTES de avisar a los jefes.
+6. **Cargar los correos de cada jefe.** Cada uno debe estar en dos lugares: en la lista
+   `autorizadoPC()` de las reglas (para abrir la app) y asignado a su departamento desde la
+   pantalla (para escribir en él).
+7. **Repartir los procesos actuales.** Usar "Importar desde la planilla" una sola vez para
+   que los procesos que hoy están en la planilla queden distribuidos por departamento.

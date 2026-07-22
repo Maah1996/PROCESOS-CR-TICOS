@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.3.0';
+var APP_VER = '1.4.0';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -245,6 +245,61 @@ var APP_VER = '1.3.0';
   .nube-estado.guardando { color: #b7791f; }
   .nube-estado.err { color: #c0392b; }
 
+  /* ── CATÁLOGO DE PROCESOS POR DEPARTAMENTO (pantalla 1) ─────────────────────
+     Pantalla previa a la planilla: cada jefe mantiene aquí los procesos de su
+     departamento (unidad, código y nombre) y desde aquí se cargan a la planilla. */
+  .cat-pantalla { display: none; max-width: 1000px; margin: 18px auto; padding: 16px 20px 22px;
+                  background: #fff; border: 1px solid #bfbfbf; font-family: 'Times New Roman', Times, serif; }
+  .cat-pantalla.abierto { display: block; }
+  body.en-catalogo .page { display: none; }
+  .cat-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+             border-bottom: 2px solid #375623; padding-bottom: 8px; margin-bottom: 14px; }
+  .cat-cab h2 { font-size: 17px; color: #375623; }
+  .cat-cab .cat-quien { font-size: 11px; color: #555; }
+  .cat-barra { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 12px; }
+  .cat-campo label { display: block; font-size: 10px; color: #555; margin-bottom: 2px; }
+  .cat-campo select { font-family: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid #999; min-width: 260px; }
+  .cat-btn { font-family: inherit; font-size: 12px; padding: 6px 12px; border: none; color: #fff;
+             background: #375623; cursor: pointer; }
+  .cat-btn:hover { opacity: .88; }
+  .cat-btn.gris { background: #6b6b6b; }
+  .cat-btn.azul { background: #4472c4; }
+  .cat-btn.rojo { background: #c0504d; }
+  .cat-btn:disabled { background: #b9b9b9; cursor: default; }
+  .cat-tabla { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cat-tabla th { background: #dbe5f1; border: 1px solid #7f7f7f; padding: 6px 8px; font-size: 11px; }
+  .cat-tabla td { border: 1px solid #bfbfbf; padding: 5px 8px; vertical-align: middle; }
+  .cat-tabla td.cat-u, .cat-tabla td.cat-c { text-align: center; white-space: nowrap; }
+  .cat-tabla td.cat-nom { text-transform: uppercase; }
+  .cat-tabla tr.cat-edit td { background: #fff8e1; }
+  .cat-tabla input { font-family: inherit; font-size: 12px; padding: 3px 5px; border: 1px solid #999; width: 100%;
+                     box-sizing: border-box; text-transform: uppercase; }
+  .cat-acc { white-space: nowrap; text-align: center; width: 78px; }
+  .cat-acc button { font-family: inherit; font-size: 11px; border: 1px solid #bfbfbf; background: #f3f3f3;
+                    cursor: pointer; padding: 2px 6px; margin: 0 1px; }
+  .cat-vacio { text-align: center; color: #888; padding: 18px; font-style: italic; }
+  .cat-pie { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+             flex-wrap: wrap; margin-top: 12px; }
+  .cat-conteo { font-size: 11px; color: #555; }
+  .cat-admin { margin-top: 16px; border-top: 1px dashed #bfbfbf; padding-top: 10px; }
+  .cat-admin h3 { font-size: 12px; color: #375623; margin-bottom: 6px; }
+  .cat-admin .cat-nota { font-size: 10px; color: #777; margin-top: 6px; line-height: 1.5; }
+  .cat-estado { font-size: 10px; margin-left: 4px; }
+  .cat-estado.ok { color: #16a085; } .cat-estado.err { color: #c0392b; }
+  /* Franja de certificación: cambia de color según el departamento esté al día o pendiente */
+  .cat-certif { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+                flex-wrap: wrap; margin-top: 14px; padding: 10px 12px; border: 1px solid #bfbfbf;
+                background: #fdf6e3; }
+  .cat-certif.listo { background: #eaf5ea; border-color: #7aa87a; }
+  .cat-certif-txt { font-size: 11px; color: #444; line-height: 1.5; }
+  .cat-certif-txt strong { color: #375623; }
+  .cat-tablero { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 4px; }
+  .cat-tablero th { background: #dbe5f1; border: 1px solid #7f7f7f; padding: 4px 6px; font-size: 10px; }
+  .cat-tablero td { border: 1px solid #bfbfbf; padding: 4px 6px; }
+  .cat-tablero td.est-ok { color: #1e7a1e; } .cat-tablero td.est-pend { color: #b06a00; }
+  .cat-tablero td.est-vacio { color: #999; font-style: italic; }
+  .btn-catalogo { background: #7030a0; }
+
   /* ── MÓVIL / CELULAR ──────────────────────────────────────────────────────────
      La tabla es ancha (pensada para PC). En el celular: el membrete se apila, la
      tabla se desplaza SOLA en horizontal con el dedo, y la página sube/baja normal.
@@ -285,11 +340,77 @@ var APP_VER = '1.3.0';
   </form>
 </div>
 
+<!-- PANTALLA 1: CATÁLOGO DE PROCESOS POR DEPARTAMENTO -->
+<div class="cat-pantalla no-print" id="catPantalla">
+  <div class="cat-cab">
+    <div>
+      <h2>Gestión de procesos por departamento</h2>
+      <div class="cat-quien" id="cat-quien"></div>
+    </div>
+    <div>
+      <button class="cat-btn azul" id="cat-b-planilla" onclick="mostrarPlanilla()">Ir a la planilla general ▸</button>
+    </div>
+  </div>
+
+  <div class="cat-barra">
+    <div class="cat-campo">
+      <label for="cat-depto">Departamento</label>
+      <select id="cat-depto" onchange="catCambiarDepto(this.value)"></select>
+    </div>
+    <button class="cat-btn" id="cat-b-add" onclick="catAgregarProceso()">+ Agregar proceso</button>
+    <button class="cat-btn gris" id="cat-b-save" onclick="catGuardar()">Guardar</button>
+    <span class="cat-estado" id="cat-estado"></span>
+  </div>
+
+  <table class="cat-tabla">
+    <thead>
+      <tr>
+        <th style="width:70px;">UNIDAD</th>
+        <th style="width:80px;">CÓDIGO</th>
+        <th>NOMBRE DEL PROCESO</th>
+        <th class="cat-acc">&nbsp;</th>
+      </tr>
+    </thead>
+    <tbody id="cat-cuerpo"></tbody>
+  </table>
+
+  <div class="cat-pie">
+    <span class="cat-conteo" id="cat-conteo"></span>
+  </div>
+
+  <!-- CERTIFICACIÓN: el paso a la planilla se habilita recién cuando el jefe declara
+       que revisó sus procesos. Cualquier edición posterior anula la certificación. -->
+  <div class="cat-certif" id="cat-certif">
+    <div class="cat-certif-txt" id="cat-certif-txt"></div>
+    <button class="cat-btn" id="cat-b-certif" onclick="catCertificar()">✔ Certificar mis procesos</button>
+  </div>
+
+  <div class="cat-admin" id="cat-admin" style="display:none;">
+    <h3>Administración</h3>
+    <button class="cat-btn gris" onclick="catAgregarDepto()">+ Agregar departamento</button>
+    <button class="cat-btn gris" onclick="catRenombrarDepto()">Renombrar departamento</button>
+    <button class="cat-btn rojo" onclick="catEliminarDepto()">Eliminar departamento</button>
+    <button class="cat-btn gris" onclick="catAsignarCorreo()">Asignar correos a un depto.</button>
+    <button class="cat-btn gris" onclick="catImportarDesdePlanilla()">Importar desde la planilla</button>
+    <button class="cat-btn azul" id="cat-b-cargar" onclick="catSincronizarPlanilla()">▾ Cargar catálogo en la planilla</button>
+
+    <h3 style="margin-top:12px;">Estado de certificación por departamento</h3>
+    <table class="cat-tablero" id="cat-tablero"></table>
+
+    <div class="cat-nota">
+      Cada departamento guarda sus procesos en su propio documento
+      (<em>procesos_deptos/&lt;DEPTO&gt;</em>). Quién puede escribir en cada uno lo deciden las
+      reglas de Firestore según los correos asignados aquí, no esta página.
+    </div>
+  </div>
+</div>
+
 <div class="page">
 
   <!-- CONFIG TOGGLE -->
   <div class="btn-bar">
     <div class="btn-bar-left">
+      <button class="btn btn-catalogo" onclick="mostrarCatalogo()">◂ Procesos por Depto.</button>
       <button class="btn btn-config" onclick="toggleConfig()">⚙ Configurar Encabezado</button>
       <button class="btn btn-db" onclick="toggleDB()">🗄 Base de Datos</button>
       <button class="btn btn-export" onclick="imprimirReporte()">🖨 Imprimir / Exportar PDF</button>
@@ -1902,6 +2023,656 @@ window.addEventListener('resize', function () {
   }, 150);
 });
 
+// ─── CATÁLOGO DE PROCESOS POR DEPARTAMENTO (pantalla 1) ─────────────────────────
+// Pantalla previa a la planilla. Cada jefe mantiene aquí los procesos de SU
+// departamento (unidad, código y nombre), los revisa y los CERTIFICA. Recién ahí se
+// habilita el paso a la planilla general. Si después edita algo, la certificación se
+// anula sola: la firma siempre corresponde a lo que está guardado.
+//
+// Cada departamento vive en SU PROPIO documento (procesos_deptos/<DEPTO>), no en uno
+// compartido. Así las reglas de Firestore pueden verificar de verdad que un jefe solo
+// escriba en su departamento, y dos deptos guardando a la vez no se pisan.
+// La lista de departamentos y qué correo edita cada uno viven en procesos_criticos/catalogo
+// (solo el administrador lo escribe).
+const CAT_KEY = 'procesos_criticos_catalogo';
+const CAT_ADMINS = ['marcoaraya1973@gmail.com'];
+const CAT_COL_DEPTOS = 'procesos_deptos';
+const CAT_DEPTOS_INICIAL = [
+  { id: 'I',       nombre: 'Personal' },
+  { id: 'II',      nombre: 'Inteligencia' },
+  { id: 'III',     nombre: 'Operaciones' },
+  { id: 'IV',      nombre: 'Logística' },
+  { id: 'V',       nombre: 'Planes y Políticas' },
+  { id: 'VI',      nombre: 'Mando y Control' },
+  { id: 'VIII',    nombre: 'Finanzas' },
+  { id: 'COMPRED', nombre: 'COMPRED' }
+];
+
+// Configuración compartida: departamentos y correos autorizados por departamento.
+var catalogo = { deptos: CAT_DEPTOS_INICIAL.map(function (d) { return { id: d.id, nombre: d.nombre }; }),
+                 asignaciones: {} };   // { DEPTO: ['correo@dominio', …] }
+var catProcesos = [];   // [{ id, unidad, codigo, nombre }] de todos los deptos cargados
+var catCertif = {};     // { DEPTO: { por, el, hash, n } }
+
+var _catCfgDoc = null, _catCol = null, _catUnsubCfg = null, _catUnsubDep = null;
+var _catSel = '';        // '' = todos los departamentos (solo administrador)
+var _catEditando = null; // id del proceso que se está editando en la fila
+
+function catEmail() { return ((_auth && _auth.currentUser && _auth.currentUser.email) || '').toLowerCase(); }
+function catEsAdmin() {
+  if (!_nubeOn) return true;   // sin Firebase la página trabaja local: nadie a quién limitar
+  return CAT_ADMINS.indexOf(catEmail()) >= 0;
+}
+function catMiDepto() {
+  var em = catEmail(), r = null;
+  Object.keys(catalogo.asignaciones || {}).forEach(function (d) {
+    var lista = catalogo.asignaciones[d] || [];
+    if (lista.indexOf(em) >= 0) r = d;
+  });
+  return r;
+}
+function catPuedeEditar(deptoId) {
+  if (catEsAdmin()) return true;
+  var mio = catMiDepto();
+  return !!mio && mio === deptoId;
+}
+function catNuevoId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+// Orden institucional: números romanos de menor a mayor (I, II, III…), después los
+// departamentos que se agreguen, y COMPRED SIEMPRE al final.
+function catOrden(id) {
+  if (id === 'COMPRED') return 9999;
+  var r = ROMAN.indexOf(String(id).toUpperCase());
+  if (r >= 0) return r;
+  var i = catalogo.deptos.findIndex(function (d) { return d.id === id; });
+  return 1000 + (i < 0 ? 999 : i);
+}
+function catDeptosOrdenados() {
+  return catalogo.deptos.slice().sort(function (a, b) { return catOrden(a.id) - catOrden(b.id); });
+}
+function catDeptoNombre(id) {
+  var d = catalogo.deptos.find(function (x) { return x.id === id; });
+  return d ? d.nombre : '';
+}
+// Compara códigos tipo 2.10 respetando el valor numérico de cada tramo (2.10 > 2.9).
+function catCmpCodigo(a, b) {
+  var pa = String(a || '').split('.'), pb = String(b || '').split('.');
+  for (var i = 0; i < Math.max(pa.length, pb.length); i++) {
+    var na = parseInt(pa[i], 10), nb = parseInt(pb[i], 10);
+    if (isNaN(na) && isNaN(nb)) { if ((pa[i] || '') !== (pb[i] || '')) return (pa[i] || '') < (pb[i] || '') ? -1 : 1; continue; }
+    if (isNaN(na)) return 1;
+    if (isNaN(nb)) return -1;
+    if (na !== nb) return na - nb;
+  }
+  return 0;
+}
+function catOrdenar(lista) {
+  return lista.slice().sort(function (a, b) {
+    var d = catOrden(a.unidad) - catOrden(b.unidad);
+    if (d !== 0) return d;
+    return catCmpCodigo(a.codigo, b.codigo);
+  });
+}
+function catDe(deptoId) { return catOrdenar(catProcesos.filter(function (p) { return p.unidad === deptoId; })); }
+
+// Huella del contenido de un departamento. Sirve para detectar que lo certificado ya no
+// coincide con lo que hay ahora (alguien editó después de certificar).
+function catHash(deptoId) {
+  var txt = catDe(deptoId).map(function (p) { return p.codigo + '' + p.nombre; }).join('');
+  var h = 5381;
+  for (var i = 0; i < txt.length; i++) h = ((h * 33) ^ txt.charCodeAt(i)) >>> 0;
+  return txt.length + '-' + h.toString(36);
+}
+function catCertificado(deptoId) {
+  var c = catCertif[deptoId];
+  if (!c || !c.por) return null;
+  return c.hash === catHash(deptoId) ? c : null;   // si no coincide, quedó anulada
+}
+function catFecha(ms) {
+  try {
+    var d = new Date(ms);
+    return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return ''; }
+}
+
+function catNormalizar() {
+  if (!catalogo || typeof catalogo !== 'object') catalogo = {};
+  if (!Array.isArray(catalogo.deptos) || !catalogo.deptos.length) {
+    catalogo.deptos = CAT_DEPTOS_INICIAL.map(function (d) { return { id: d.id, nombre: d.nombre }; });
+  }
+  if (!catalogo.asignaciones || typeof catalogo.asignaciones !== 'object') catalogo.asignaciones = {};
+  catalogo.deptos = catalogo.deptos.map(function (d) {
+    return { id: String(d.id || '').toUpperCase().trim(), nombre: String(d.nombre || '').trim() };
+  }).filter(function (d) { return d.id; });
+  if (!Array.isArray(catProcesos)) catProcesos = [];
+  catProcesos = catProcesos.map(function (p) {
+    return {
+      id: p.id || catNuevoId(),
+      unidad: String(p.unidad || '').toUpperCase().trim(),
+      codigo: String(p.codigo || '').trim(),
+      nombre: String(p.nombre || '').trim()
+    };
+  }).filter(function (p) { return p.unidad; });
+}
+
+// Sugiere el próximo código del departamento: prefijo = valor del romano (I→1, VIII→8);
+// para los departamentos sin romano, su posición en la lista.
+function catCodigoSugerido(deptoId) {
+  var r = ROMAN.indexOf(String(deptoId).toUpperCase());
+  var pref = r >= 0 ? (r + 1) : (catalogo.deptos.findIndex(function (d) { return d.id === deptoId; }) + 1);
+  var max = 0;
+  catProcesos.forEach(function (p) {
+    if (p.unidad !== deptoId) return;
+    var m = String(p.codigo).match(/^(\d+)\.(\d+)$/);
+    if (m && parseInt(m[1], 10) === pref) max = Math.max(max, parseInt(m[2], 10));
+  });
+  return pref + '.' + (max + 1);
+}
+
+function catEstado(txt, cls) {
+  var el = document.getElementById('cat-estado');
+  if (el) { el.textContent = txt || ''; el.className = 'cat-estado ' + (cls || ''); }
+}
+
+function catCambiarDepto(v) { _catSel = v; _catEditando = null; catRender(); }
+
+function catRender() {
+  catNormalizar();
+  var admin = catEsAdmin(), mio = catMiDepto();
+
+  var quien = document.getElementById('cat-quien');
+  if (quien) {
+    quien.textContent = (catEmail() || 'Modo local') + (admin ? ' — Administrador (ve y edita todos los departamentos)'
+      : (mio ? ' — Depto. ' + mio + (catDeptoNombre(mio) ? ' "' + catDeptoNombre(mio) + '"' : '')
+             : ' — su correo aún no tiene departamento asignado (solo lectura)'));
+  }
+  document.getElementById('cat-admin').style.display = admin ? '' : 'none';
+
+  // Desplegable: el administrador ve "todos"; los demás, solo su departamento.
+  var sel = document.getElementById('cat-depto');
+  var visibles = admin ? catDeptosOrdenados() : catalogo.deptos.filter(function (d) { return d.id === mio; });
+  if (!admin) _catSel = visibles.length ? mio : '';
+  else if (_catSel && !catalogo.deptos.some(function (d) { return d.id === _catSel; })) _catSel = '';
+  var html = '';
+  if (admin) html += '<option value="">Todos los departamentos (' + catProcesos.length + ' procesos)</option>';
+  visibles.forEach(function (d) {
+    var n = catDe(d.id).length;
+    html += '<option value="' + escapeHtml(d.id) + '"' + (_catSel === d.id ? ' selected' : '') + '>DEPTO ' +
+            escapeHtml(d.id) + (d.nombre ? ' "' + escapeHtml(d.nombre) + '"' : '') + ' — ' + n + '</option>';
+  });
+  if (!visibles.length && !admin) html = '<option value="">(sin departamento asignado)</option>';
+  sel.innerHTML = html;
+  sel.disabled = !admin;
+
+  // Filas
+  var lista = catOrdenar(catProcesos.filter(function (p) { return !_catSel || p.unidad === _catSel; }));
+  var cuerpo = document.getElementById('cat-cuerpo'), filas = '';
+  if (!lista.length) {
+    var msg = _catSel
+      ? 'Usted no tiene procesos cargados en el Depto. ' + _catSel + '.<br>' +
+        'Use <strong>+ Agregar proceso</strong> para registrarlos uno por uno.'
+      : (admin ? 'Todavía no hay procesos cargados en ningún departamento.'
+               : 'Su correo aún no tiene un departamento asignado. Solicítelo al administrador.');
+    filas = '<tr><td colspan="4" class="cat-vacio">' + msg + '</td></tr>';
+  } else {
+    lista.forEach(function (p) {
+      var editable = catPuedeEditar(p.unidad);
+      if (_catEditando === p.id) {
+        var opts = catDeptosOrdenados().filter(function (d) { return catPuedeEditar(d.id); })
+          .map(function (d) { return '<option value="' + escapeHtml(d.id) + '"' + (d.id === p.unidad ? ' selected' : '') + '>' + escapeHtml(d.id) + '</option>'; }).join('');
+        filas += '<tr class="cat-edit">' +
+          '<td class="cat-u"><select id="ed-unidad" style="font-family:inherit;font-size:12px;width:100%;">' + opts + '</select></td>' +
+          '<td class="cat-c"><input id="ed-codigo" value="' + escapeHtml(p.codigo) + '"></td>' +
+          '<td><input id="ed-nombre" value="' + escapeHtml(p.nombre) + '"></td>' +
+          '<td class="cat-acc"><button onclick="catConfirmarEdicion(\'' + p.id + '\')" title="Aceptar">✔</button>' +
+          '<button onclick="catCancelarEdicion()" title="Cancelar">✕</button></td></tr>';
+      } else {
+        filas += '<tr>' +
+          '<td class="cat-u">' + escapeHtml(p.unidad) + '</td>' +
+          '<td class="cat-c">' + escapeHtml(p.codigo) + '</td>' +
+          '<td class="cat-nom">' + escapeHtml(p.nombre) + '</td>' +
+          '<td class="cat-acc">' + (editable
+            ? '<button onclick="catEditar(\'' + p.id + '\')" title="Modificar">✎</button>' +
+              '<button onclick="catEliminar(\'' + p.id + '\')" title="Eliminar">🗑</button>'
+            : '<span style="color:#aaa;font-size:10px;">—</span>') + '</td></tr>';
+      }
+    });
+  }
+  cuerpo.innerHTML = filas;
+
+  document.getElementById('cat-b-add').disabled = !(_catSel && catPuedeEditar(_catSel));
+  document.getElementById('cat-b-save').disabled = !(_catSel && catPuedeEditar(_catSel));
+  document.getElementById('cat-conteo').textContent =
+    (_catSel ? lista.length + ' proceso(s) en Depto. ' + _catSel + ' · ' : '') +
+    catProcesos.length + ' en total';
+
+  catRenderCertif();
+  if (admin) catRenderTablero();
+}
+
+// Franja de certificación + habilitación del paso a la planilla.
+function catRenderCertif() {
+  var caja = document.getElementById('cat-certif');
+  var txt = document.getElementById('cat-certif-txt');
+  var btn = document.getElementById('cat-b-certif');
+  var paso = document.getElementById('cat-b-planilla');
+  var admin = catEsAdmin(), depto = _catSel || catMiDepto();
+
+  if (!depto) {
+    caja.classList.remove('listo');
+    txt.innerHTML = admin
+      ? 'Elija un departamento para revisar y certificar sus procesos.'
+      : 'Su correo aún no tiene departamento asignado, por eso no puede certificar ni continuar.';
+    btn.disabled = true;
+  } else {
+    var cert = catCertificado(depto), n = catDe(depto).length;
+    if (cert) {
+      caja.classList.add('listo');
+      txt.innerHTML = '<strong>Depto. ' + escapeHtml(depto) + ' certificado.</strong> ' + cert.n +
+        ' proceso(s) revisados por ' + escapeHtml(cert.por) + ' el ' + catFecha(cert.el) + '.';
+      btn.disabled = true;
+      btn.textContent = '✔ Certificado';
+    } else {
+      caja.classList.remove('listo');
+      txt.innerHTML = catCertif[depto]
+        ? '<strong>Pendiente.</strong> Los procesos del Depto. ' + escapeHtml(depto) +
+          ' cambiaron después de la última certificación. Revíselos y vuelva a certificar.'
+        : (n === 0
+          ? '<strong>Sin procesos cargados.</strong> El Depto. ' + escapeHtml(depto) +
+            ' aún no registra procesos. Agréguelos y luego certifique para continuar.'
+          : 'Revise que los ' + n + ' proceso(s) del Depto. ' + escapeHtml(depto) +
+            ' sean los que corresponden. Agregue o modifique lo que falte y luego certifique.');
+      btn.disabled = !(catPuedeEditar(depto) && n > 0);
+      btn.textContent = '✔ Certificar mis procesos';
+    }
+  }
+
+  if (paso) {
+    var ok = catPuedePasar();
+    paso.disabled = !ok;
+    paso.title = ok ? 'Ir a la planilla general'
+                    : 'Debe certificar los procesos de su departamento antes de continuar';
+  }
+}
+
+function catRenderTablero() {
+  var t = document.getElementById('cat-tablero');
+  if (!t) return;
+  var html = '<tr><th style="width:70px;">Depto.</th><th>Nombre</th><th style="width:60px;">Procesos</th><th>Estado</th></tr>';
+  catDeptosOrdenados().forEach(function (d) {
+    var n = catDe(d.id).length, cert = catCertificado(d.id);
+    var cls, est;
+    if (!n) { cls = 'est-vacio'; est = 'sin procesos cargados'; }
+    else if (cert) { cls = 'est-ok'; est = '✔ certificado por ' + escapeHtml(cert.por) + ' el ' + catFecha(cert.el); }
+    else if (catCertif[d.id]) { cls = 'est-pend'; est = '⚠ cambió después de certificar'; }
+    else { cls = 'est-pend'; est = '⏳ pendiente de certificar'; }
+    html += '<tr><td>' + escapeHtml(d.id) + '</td><td>' + escapeHtml(d.nombre) + '</td><td style="text-align:center;">' +
+            n + '</td><td class="' + cls + '">' + est + '</td></tr>';
+  });
+  t.innerHTML = html;
+}
+
+function catCertificar() {
+  var depto = _catSel || catMiDepto();
+  if (!depto || !catPuedeEditar(depto)) return;
+  var n = catDe(depto).length;
+  if (!n) { alert('No hay procesos que certificar en el Depto. ' + depto + '.'); return; }
+  if (!confirm('Usted certifica que los ' + n + ' proceso(s) del Depto. ' + depto +
+               ' son los que corresponden y están correctamente escritos.\n\n' +
+               'Quedará registrado su correo y la fecha. Si después modifica algo, la ' +
+               'certificación se anula y deberá volver a certificar.\n\n¿Confirmar?')) return;
+  catCertif[depto] = { por: catEmail() || 'local', el: Date.now(), hash: catHash(depto), n: n };
+  catGuardarDepto(depto, true);
+  catRender();
+}
+
+function catAgregarProceso() {
+  var depto = _catSel || catMiDepto();
+  if (!depto) { alert('Elija primero un departamento en el desplegable.'); return; }
+  if (!catPuedeEditar(depto)) { alert('No tiene permiso para editar el Depto. ' + depto + '.'); return; }
+  var p = { id: catNuevoId(), unidad: depto, codigo: catCodigoSugerido(depto), nombre: '' };
+  catProcesos.push(p);
+  _catSel = depto;
+  _catEditando = p.id;
+  catRender();
+  var el = document.getElementById('ed-nombre'); if (el) el.focus();
+}
+
+function catEditar(id) { _catEditando = id; catRender(); var el = document.getElementById('ed-nombre'); if (el) el.focus(); }
+
+function catCancelarEdicion() {
+  // Si se cancela un proceso recién agregado que quedó sin nombre, no se deja basura.
+  var p = catProcesos.find(function (x) { return x.id === _catEditando; });
+  if (p && !p.nombre.trim()) catProcesos = catProcesos.filter(function (x) { return x.id !== p.id; });
+  _catEditando = null;
+  catRender();
+}
+
+function catConfirmarEdicion(id) {
+  var p = catProcesos.find(function (x) { return x.id === id; });
+  if (!p) { _catEditando = null; catRender(); return; }
+  var antes = p.unidad;
+  var u = document.getElementById('ed-unidad').value;
+  var c = document.getElementById('ed-codigo').value.trim();
+  var n = document.getElementById('ed-nombre').value.trim().toUpperCase();
+  if (!n) { alert('Escriba el nombre del proceso.'); return; }
+  if (!catPuedeEditar(u)) { alert('No tiene permiso para editar el Depto. ' + u + '.'); return; }
+  var dup = catProcesos.some(function (x) {
+    return x.id !== id && x.unidad === u && c && x.codigo.toUpperCase() === c.toUpperCase();
+  });
+  if (dup && !confirm('Ya existe el código ' + c + ' en el Depto. ' + u + '.\n\n¿Guardarlo igual?')) return;
+  p.unidad = u; p.codigo = c; p.nombre = n;
+  _catEditando = null;
+  catRender();
+  catGuardarDepto(u, true);
+  if (antes !== u) catGuardarDepto(antes, false);
+}
+
+function catEliminar(id) {
+  var p = catProcesos.find(function (x) { return x.id === id; });
+  if (!p) return;
+  if (!catPuedeEditar(p.unidad)) { alert('No tiene permiso para editar el Depto. ' + p.unidad + '.'); return; }
+  if (!confirm('¿Eliminar del catálogo el proceso:\n\n' + p.unidad + ' ' + p.codigo + ' — ' + p.nombre +
+               '\n\nSe quitará de la planilla recién cuando el administrador use "Cargar catálogo en la planilla".')) return;
+  var depto = p.unidad;
+  catProcesos = catProcesos.filter(function (x) { return x.id !== id; });
+  if (_catEditando === id) _catEditando = null;
+  catRender();
+  catGuardarDepto(depto, true);
+}
+
+// ── Administración de departamentos (solo administrador) ──────────────────────
+function catAgregarDepto() {
+  if (!catEsAdmin()) return;
+  var id = (prompt('Identificador del departamento (número romano o sigla, ej: VII o COMPRED):') || '').toUpperCase().trim();
+  if (!id) return;
+  if (catalogo.deptos.some(function (d) { return d.id === id; })) { alert('Ese departamento ya existe.'); return; }
+  var nombre = (prompt('Nombre del departamento ' + id + ' (ej: Sanidad):') || '').trim();
+  catalogo.deptos.push({ id: id, nombre: nombre });
+  _catSel = id;
+  catRender();
+  catGuardarConfig();
+}
+function catRenombrarDepto() {
+  if (!catEsAdmin()) return;
+  if (!_catSel) { alert('Elija primero un departamento en el desplegable.'); return; }
+  var d = catalogo.deptos.find(function (x) { return x.id === _catSel; });
+  if (!d) return;
+  var nombre = prompt('Nombre del Depto. ' + d.id + ':', d.nombre);
+  if (nombre === null) return;
+  d.nombre = nombre.trim();
+  catRender();
+  catGuardarConfig();
+}
+function catEliminarDepto() {
+  if (!catEsAdmin()) return;
+  if (!_catSel) { alert('Elija primero el departamento a eliminar.'); return; }
+  var depto = _catSel, n = catDe(depto).length;
+  if (!confirm('¿Eliminar el Depto. ' + depto + ' del catálogo' + (n ? ' junto con sus ' + n + ' proceso(s)' : '') +
+               '?\n\nLa planilla general no cambia hasta que use "Cargar catálogo en la planilla".')) return;
+  catProcesos = catProcesos.filter(function (p) { return p.unidad !== depto; });
+  catalogo.deptos = catalogo.deptos.filter(function (d) { return d.id !== depto; });
+  delete catalogo.asignaciones[depto];
+  delete catCertif[depto];
+  _catSel = '';
+  catRender();
+  catGuardarConfig();
+  catBorrarDepto(depto);
+}
+function catAsignarCorreo() {
+  if (!catEsAdmin()) return;
+  if (!_catSel) { alert('Elija primero el departamento en el desplegable.'); return; }
+  var actuales = (catalogo.asignaciones[_catSel] || []).join(', ');
+  var txt = prompt('Correos autorizados para editar el Depto. ' + _catSel +
+                   '\n(separados por coma; deje vacío para quitar a todos):', actuales);
+  if (txt === null) return;
+  var lista = txt.split(',').map(function (s) { return s.toLowerCase().trim(); }).filter(function (s) { return s; });
+  if (lista.length) catalogo.asignaciones[_catSel] = lista;
+  else delete catalogo.asignaciones[_catSel];
+  catRender();
+  catGuardarConfig();
+  alert('Recuerde que el límite real lo aplican las reglas de Firestore: deben leer esta ' +
+        'misma lista para que el bloqueo sea efectivo.');
+}
+
+// Rescata los procesos que ya están escritos en la planilla y arma el catálogo con ellos
+// (para no volver a tipear los procesos la primera vez).
+function catImportarDesdePlanilla() {
+  if (!catEsAdmin()) return;
+  var candidatos = rows.filter(function (r) { return (r.unidad || '').trim() || (r.proceso || '').trim(); });
+  if (!candidatos.length) { alert('La planilla no tiene procesos que importar.'); return; }
+  if (!confirm('Se reemplazará el catálogo actual (' + catProcesos.length + ' procesos) por los ' +
+               candidatos.length + ' que hay hoy en la planilla, y se anularán las certificaciones. ¿Continuar?')) return;
+  var nuevos = [];
+  candidatos.forEach(function (r) {
+    var u = (r.unidad || '').toUpperCase().trim();
+    if (!u) return;
+    if (!catalogo.deptos.some(function (d) { return d.id === u; })) catalogo.deptos.push({ id: u, nombre: '' });
+    nuevos.push({ id: catNuevoId(), unidad: u, codigo: (r.codigo || '').trim(), nombre: (r.proceso || '').trim().toUpperCase() });
+  });
+  catProcesos = nuevos;
+  catCertif = {};
+  _catEditando = null;
+  catRender();
+  catGuardarConfig();
+  catDeptosOrdenados().forEach(function (d) { catGuardarDepto(d.id, false); });
+  catEstado('☁ Catálogo importado desde la planilla', 'ok');
+}
+
+// ── Guardado (local + nube) ───────────────────────────────────────────────────
+function catGuardarLocal() {
+  try {
+    localStorage.setItem(CAT_KEY, JSON.stringify({
+      catalogo: catalogo, procesos: catProcesos, certif: catCertif, savedAt: Date.now()
+    }));
+  } catch (e) {}
+}
+
+// Guarda UN departamento en su propio documento.
+function catGuardarDepto(deptoId, avisar) {
+  if (!deptoId) return;
+  catNormalizar();
+  catGuardarLocal();
+  if (!_nubeOn || !_catCol) { if (avisar) catEstado('💾 Guardado local (sin nube)', 'err'); return; }
+  if (avisar) catEstado('☁ Guardando…', '');
+  _catCol.doc(deptoId).set({
+    data: JSON.stringify(catDe(deptoId).map(function (p) { return { id: p.id, codigo: p.codigo, nombre: p.nombre }; })),
+    certificado: catCertif[deptoId] || null,
+    updatedAt: Date.now(),
+    cliente: MI_CLIENTE,
+    porEmail: catEmail()
+  }).then(function () {
+    if (avisar) catEstado('☁ Depto. ' + deptoId + ' guardado', 'ok');
+  }).catch(function (err) {
+    catEstado(err && err.code === 'permission-denied'
+      ? '🔒 Sin permiso para guardar el Depto. ' + deptoId
+      : '💾 Local (nube bloqueada)', 'err');
+  });
+}
+// Botón "Guardar" de la barra: guarda el departamento en pantalla.
+function catGuardar() {
+  var depto = _catSel || catMiDepto();
+  if (!depto) { alert('Elija primero un departamento.'); return; }
+  catGuardarDepto(depto, true);
+}
+function catBorrarDepto(deptoId) {
+  if (!_nubeOn || !_catCol) return;
+  _catCol.doc(deptoId).delete().catch(function () {});
+}
+function catGuardarConfig() {
+  catNormalizar();
+  catGuardarLocal();
+  if (!_nubeOn || !_catCfgDoc) { catEstado('💾 Guardado local (sin nube)', 'err'); return; }
+  _catCfgDoc.set({
+    data: JSON.stringify({ deptos: catalogo.deptos }),
+    asignaciones: catalogo.asignaciones,   // campo real (no texto): las reglas lo leen
+    updatedAt: Date.now(),
+    cliente: MI_CLIENTE,
+    porEmail: catEmail()
+  }).then(function () { catEstado('☁ Configuración guardada', 'ok'); })
+    .catch(function (err) {
+      catEstado(err && err.code === 'permission-denied' ? '🔒 Sin permiso (solo administrador)' : '💾 Local (nube bloqueada)', 'err');
+    });
+}
+
+function catRestaurarLocal() {
+  try {
+    var raw = localStorage.getItem(CAT_KEY);
+    if (!raw) return false;
+    var o = JSON.parse(raw);
+    if (!o) return false;
+    if (o.catalogo) catalogo = o.catalogo;
+    if (Array.isArray(o.procesos)) catProcesos = o.procesos;
+    if (o.certif) catCertif = o.certif;
+    catNormalizar();
+    return true;
+  } catch (e) { return false; }
+}
+
+function catArrancar() {
+  catRestaurarLocal();
+  catRender();
+  if (!_nubeOn) return;
+  try {
+    var fs = firebase.firestore();
+    _catCfgDoc = fs.collection('procesos_criticos').doc('catalogo');
+    _catCol = fs.collection(CAT_COL_DEPTOS);
+  } catch (e) { return; }
+
+  if (!_catUnsubCfg) {
+    _catUnsubCfg = _catCfgDoc.onSnapshot(function (snap) {
+      if (!snap.exists) return;
+      var d = snap.data() || {};
+      if (d.cliente === MI_CLIENTE) return;
+      try {
+        var obj = d.data ? JSON.parse(d.data) : {};
+        if (Array.isArray(obj.deptos) && obj.deptos.length) catalogo.deptos = obj.deptos;
+      } catch (e) {}
+      catalogo.asignaciones = d.asignaciones || {};
+      catGuardarLocal();
+      if (_catEditando === null) catRender();
+    }, function () { catEstado('💾 Solo local (sin nube)', 'err'); });
+  }
+
+  if (!_catUnsubDep) {
+    _catUnsubDep = _catCol.onSnapshot(function (snap) {
+      var acumulado = [], certif = {};
+      snap.forEach(function (doc) {
+        var d = doc.data() || {}, lista = [];
+        try { lista = JSON.parse(d.data) || []; } catch (e) { lista = []; }
+        lista.forEach(function (p) {
+          acumulado.push({ id: p.id || catNuevoId(), unidad: doc.id, codigo: p.codigo || '', nombre: p.nombre || '' });
+        });
+        if (d.certificado) certif[doc.id] = d.certificado;
+      });
+      catProcesos = acumulado;
+      catCertif = certif;
+      catNormalizar();
+      catGuardarLocal();
+      if (_catEditando === null) catRender();
+    }, function (err) {
+      catEstado(err && err.code === 'permission-denied' ? '🔒 Sin permiso para leer el catálogo' : '💾 Solo local (sin nube)', 'err');
+    });
+  }
+}
+
+// ── Cargar el catálogo en la planilla general ─────────────────────────────────
+// Sincroniza CONSERVANDO los puntajes: los procesos que ya existen se reconocen por
+// UNIDAD + CÓDIGO y mantienen intactas sus notas; solo cambian nombre y orden. Los
+// nuevos entran con las celdas vacías. Los que se sacaron del catálogo se avisan antes.
+function catClave(u, c) { return String(u || '').toUpperCase().trim() + '|' + String(c || '').toUpperCase().trim(); }
+
+function catSincronizarPlanilla() {
+  if (!catEsAdmin()) { alert('Solo el administrador carga el catálogo en la planilla general.'); return; }
+  catNormalizar();
+  if (!catProcesos.length) { alert('El catálogo está vacío.'); return; }
+
+  var pendientes = catDeptosOrdenados().filter(function (d) { return catDe(d.id).length && !catCertificado(d.id); });
+  if (pendientes.length && !confirm('Estos departamentos aún no certifican sus procesos:\n\n' +
+      pendientes.map(function (d) { return '· Depto. ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : ''); }).join('\n') +
+      '\n\n¿Cargar igual?')) return;
+
+  var porClave = {};
+  rows.forEach(function (r) {
+    var k = catClave(r.unidad, r.codigo);
+    if (!porClave[k]) porClave[k] = [];
+    porClave[k].push(r);
+  });
+
+  var usadas = new Set(), nuevas = 0, resultado = [];
+  catOrdenar(catProcesos).forEach(function (p) {
+    var lista = porClave[catClave(p.unidad, p.codigo)] || [];
+    var fila = null;
+    for (var i = 0; i < lista.length; i++) { if (!usadas.has(lista[i])) { fila = lista[i]; break; } }
+    if (fila) {
+      usadas.add(fila);
+      fila.unidad = p.unidad;
+      fila.codigo = p.codigo;
+      fila.proceso = p.nombre;          // los puntajes de esta fila NO se tocan
+    } else {
+      fila = nuevaFilaVacia();
+      fila.unidad = p.unidad; fila.codigo = p.codigo; fila.proceso = p.nombre;
+      nuevas++;
+    }
+    resultado.push(fila);
+  });
+
+  // Filas de la planilla que ya no están en el catálogo.
+  var sobrantes = rows.filter(function (r) {
+    if (usadas.has(r)) return false;
+    return (r.unidad || '').trim() || (r.codigo || '').trim() || (r.proceso || '').trim();
+  });
+  var quitar = false;
+  if (sobrantes.length) {
+    quitar = confirm('Hay ' + sobrantes.length + ' proceso(s) en la planilla que NO están en el catálogo:\n\n' +
+      sobrantes.slice(0, 8).map(function (r) { return '· ' + (r.unidad || '?') + ' ' + (r.codigo || '') + ' ' + (r.proceso || '(sin nombre)'); }).join('\n') +
+      (sobrantes.length > 8 ? '\n… y ' + (sobrantes.length - 8) + ' más' : '') +
+      '\n\nAceptar = eliminarlos de la planilla (se pierden sus puntajes).\nCancelar = conservarlos al final.');
+    if (!quitar) resultado = resultado.concat(sobrantes);
+  }
+
+  var conservados = resultado.length - nuevas - (quitar ? 0 : sobrantes.length);
+  if (!confirm('Resumen de la carga:\n\n· ' + conservados +
+      ' proceso(s) existentes conservan sus puntajes\n· ' + nuevas + ' proceso(s) nuevos entran con las celdas vacías\n· ' +
+      (quitar ? sobrantes.length : 0) + ' proceso(s) se eliminan\n\n¿Cargar en la planilla general?')) return;
+
+  rows = resultado;
+  if (!rows.length) rows.push(nuevaFilaVacia());
+  renumerar();
+  filaActiva = null;
+  pintar(null);
+  autoguardar();
+  mostrarPlanilla(true);
+  alert('Planilla actualizada: ' + rows.length + ' procesos.');
+}
+
+// ── Cambio de pantalla ────────────────────────────────────────────────────────
+// A la planilla se pasa solo con el departamento certificado (el administrador pasa
+// siempre: es quien consolida y carga).
+function catPuedePasar() {
+  if (catEsAdmin()) return true;
+  var d = catMiDepto();
+  return !!d && !!catCertificado(d);
+}
+function mostrarCatalogo() {
+  _catEditando = null;
+  document.body.classList.add('en-catalogo');
+  document.getElementById('catPantalla').classList.add('abierto');
+  catRender();
+  window.scrollTo(0, 0);
+}
+function mostrarPlanilla(forzar) {
+  if (!forzar && !catPuedePasar()) {
+    var d = catMiDepto();
+    alert(d ? 'Antes de pasar a la planilla debe revisar y CERTIFICAR los procesos del Depto. ' + d + '.'
+            : 'Su correo aún no tiene un departamento asignado. Solicítelo al administrador.');
+    return;
+  }
+  document.body.classList.remove('en-catalogo');
+  document.getElementById('catPantalla').classList.remove('abierto');
+  ajustarAltoTabla();
+  setTimeout(posicionarTrabajo, 30);
+}
 // ─── INIT ──────────────────────────────────────────────────────────────────────
 function pintar(headerCfg) {
   normalizarEstado();   // repara cualquier desajuste antes de dibujar
@@ -1963,12 +2734,15 @@ if (_nubeOn) {
       pintarSesion(u);
       arrancarApp();
       sincronizarInicial();
+      catArrancar();
+      mostrarCatalogo();   // se entra por la pantalla de procesos por departamento
     } else if (_appArrancada) {
       // Cerró sesión teniendo la planilla abierta: se borra el respaldo local y se recarga,
       // para no dejar datos institucionales a la vista del siguiente que use este equipo.
       if (_unsub) { _unsub(); _unsub = null; }
+      if (_catUnsub) { _catUnsub(); _catUnsub = null; }
       _nubeListo = false;
-      try { localStorage.removeItem(AUTOSAVE_KEY); } catch (e) {}
+      try { localStorage.removeItem(AUTOSAVE_KEY); localStorage.removeItem(CAT_KEY); } catch (e) {}
       location.reload();
     } else {
       mostrarLogin();   // arranque sin sesión previa
@@ -1979,6 +2753,8 @@ if (_nubeOn) {
   nubeEstado('💾 Solo local (sin nube)', 'err');
   _nubeListo = true;
   arrancarApp();
+  catArrancar();
+  mostrarCatalogo();
 }
 </script>
 
