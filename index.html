@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.2';
+var APP_VER = '1.5.3';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -713,7 +713,7 @@ function addTarea() {
 }
 
 function delTarea() {
-  if (tareas.length <= 1) return alert('Debe quedar al menos 1 módulo.');
+  if (tareas.length <= 1) { catAviso('Debe quedar al menos 1 módulo.'); return; }
   tareas.pop();
   rows.forEach(r => { r.scores.pop(); r.compredi.pop(); });
   renderHead(); renderBody(); autoguardar();
@@ -753,7 +753,7 @@ function insertarColumna(t, si) {
 }
 // Elimina la columna (t, si)
 function eliminarColumna(t, si) {
-  if (tareas[t].subCols.length <= 1) return alert('Debe quedar al menos 1 columna en el módulo.');
+  if (tareas[t].subCols.length <= 1) { catAviso('Debe quedar al menos 1 columna en el módulo.'); return; }
   tareas[t].subCols.splice(si, 1);
   rows.forEach(r => r.scores[t].splice(si, 1));
   colActiva = { t, si: Math.max(0, si - 1) };
@@ -1013,12 +1013,20 @@ function addRow() {
   autoguardar();
 }
 
-function delRow() {
-  if(rows.length <= 1) return alert('Debe quedar al menos 1 proceso.');
+async function delRow() {
+  if (rows.length <= 1) { await catAviso('Debe quedar al menos 1 proceso.'); return; }
   // Borra la fila donde el usuario hizo clic (la fila amarilla).
   if (filaActiva === null || filaActiva < 0 || filaActiva >= rows.length) {
-    return alert('Haga clic en la fila que desea eliminar y vuelva a presionar "Eliminar".');
+    await catAviso('Haga clic en la fila que desea eliminar y vuelva a presionar "Eliminar".');
+    return;
   }
+  // Antes borraba de inmediato: un clic de más se llevaba el proceso con sus puntajes.
+  var f = rows[filaActiva];
+  var ok = await catConfirmar('Se eliminará este proceso de la planilla con todos sus puntajes.',
+    { titulo: 'Eliminar proceso', peligro: true, ok: 'Eliminar', cancelar: 'Conservar',
+      detalle: 'N° ' + f.n + '   ' + (f.unidad || '?') + '   ' + (f.codigo || '') + '   ' +
+               (f.proceso || '(sin nombre)') });
+  if (!ok) return;
   rows.splice(filaActiva, 1);
   renumerar();
   filaActiva = null;        // sin selección tras borrar (evita borrar de más por error)
@@ -1040,9 +1048,9 @@ function saveDB(db) {
   } catch (e) {
     // Se llenó el almacenamiento del navegador (~5 MB). Antes reventaba en silencio y el
     // usuario creía que había guardado.
-    alert('No se pudo guardar: el almacenamiento del navegador está lleno.\n\n' +
-          'Abra "🗄 Base de Datos" y elimine registros antiguos, o imprima a PDF lo que ' +
-          'necesite conservar.');
+    catAviso('El almacenamiento del navegador está lleno, así que no se guardó. Abra ' +
+             '"Base de Datos" y elimine registros antiguos, o imprima a PDF lo que necesite ' +
+             'conservar.', { titulo: 'No se pudo guardar' });
     return false;
   }
 }
@@ -1089,11 +1097,15 @@ function guardarRegistro() {
   renderDBList();
 }
 
-function cargarRegistro(id) {
+async function cargarRegistro(id) {
   const db = getDB();
   const reg = db.find(r => r.id === id);
-  if (!reg) return alert('Registro no encontrado.');
-  if (!confirm('¿Cargar "' + reg.nombre + '"? Se perderán los datos actuales no guardados.')) return;
+  if (!reg) { await catAviso('Registro no encontrado.'); return; }
+  const ok = await catConfirmar('Se cargará este registro guardado. Lo que tenga la planilla en ' +
+    'pantalla y no esté guardado se pierde.',
+    { titulo: 'Cargar registro', peligro: true, ok: 'Cargar', cancelar: 'Cancelar',
+      detalle: reg.nombre });
+  if (!ok) return;
   tareas = reg.tareas;
   rows   = reg.rows;
   if (reg.titulos) Object.assign(titulos, reg.titulos);
@@ -1105,11 +1117,14 @@ function cargarRegistro(id) {
   toggleDB();
 }
 
-function eliminarRegistro(id) {
+async function eliminarRegistro(id) {
   const db = getDB();
   const reg = db.find(r => r.id === id);
   if (!reg) return;
-  if (!confirm('¿Eliminar "' + reg.nombre + '"?')) return;
+  const ok = await catConfirmar('Se eliminará este registro guardado. No se puede recuperar.',
+    { titulo: 'Eliminar registro', peligro: true, ok: 'Eliminar', cancelar: 'Conservar',
+      detalle: reg.nombre });
+  if (!ok) return;
   saveDB(db.filter(r => r.id !== id));
   renderDBList();
 }
@@ -1214,8 +1229,8 @@ function imprimirReporte() {
 
   const w = window.open('', '_blank');
   if (!w) {   // bloqueador de ventanas emergentes: antes fallaba sin decir nada
-    alert('El navegador bloqueó la ventana de impresión.\n\nPermita las ventanas ' +
-          'emergentes para este sitio y vuelva a presionar "Imprimir".');
+    catAviso('El navegador bloqueó la ventana de impresión. Permita las ventanas emergentes ' +
+             'para este sitio y vuelva a presionar "Imprimir".', { titulo: 'No se pudo imprimir' });
     return;
   }
   w.document.write(html);
@@ -1785,8 +1800,9 @@ function autoguardar() {
     nubeEstado('⚠ Respaldo local lleno', 'err');
     if (!_avisoCuota) {
       _avisoCuota = true;
-      alert('El respaldo automático local está lleno.\n\nElimine registros antiguos en ' +
-            '"🗄 Base de Datos". Su trabajo sigue guardándose en la nube si está conectada.');
+      catAviso('El respaldo automático de este equipo está lleno. Elimine registros antiguos ' +
+               'en "Base de Datos". Su trabajo sigue guardándose en la nube si está conectada.',
+               { titulo: 'Respaldo local lleno' });
     }
   }
   if (_initRenderDone) _userEdited = true;   // marca edición real del usuario (no el render inicial)
@@ -2050,10 +2066,15 @@ function mostrarConflicto(obj) {
   document.getElementById('avisoConflicto').classList.add('abierto');
 }
 
-function resolverConflicto(cual) {
+async function resolverConflicto(cual) {
   document.getElementById('avisoConflicto').classList.remove('abierto');
   if (cual === 'remoto' && _remotoEnEspera) {
-    if (!confirm('Se cargará la versión de la otra persona.\n\nSus cambios sin guardar se perderán. ¿Continuar?')) {
+    const ok = await catConfirmar('Se cargará la versión de la otra persona y sus cambios sin ' +
+      'guardar se perderán.',
+      { titulo: 'Cargar los cambios del otro', peligro: true,
+        ok: 'Cargar los suyos', cancelar: 'Volver atrás',
+        detalle: _remotoEnEspera.porEmail ? 'Guardó: ' + correoAUsuario(_remotoEnEspera.porEmail) : null });
+    if (!ok) {
       document.getElementById('avisoConflicto').classList.add('abierto');
       return;
     }
@@ -3070,9 +3091,9 @@ function sincronizarInicial() {
     if (err && err.code === 'permission-denied') {
       // El correo entró a Firebase pero NO está autorizado en las reglas de esta planilla.
       _nubeListo = false;
-      alert('Su cuenta no está autorizada para abrir esta planilla.\n\n' +
-            'Solicite el acceso al administrador (marcoaraya1973@gmail.com).');
-      if (_auth) _auth.signOut();
+      catAviso('Su cuenta no está autorizada para abrir esta planilla. Solicite el acceso al ' +
+               'administrador.', { titulo: 'Sin autorización' })
+        .then(function () { if (_auth) _auth.signOut(); });
       return;
     }
     nubeEstado('💾 Solo local (sin nube)', 'err');
