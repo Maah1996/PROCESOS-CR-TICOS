@@ -268,11 +268,15 @@ pide confirmación mostrando número, unidad, código y nombre.
 
 ### Estado al cierre de la sesión
 
-- **Versión publicada:** 1.5.3
+- **Versión publicada:** 1.5.4
 - **Commits:** `7ffb7a2` (pantalla + certificación), `46229e2` (filas incompletas),
   `9753eae` (versión a la vista), `346a481` (diálogos del módulo),
   `dc09edd` (usuarios + nombre de usuario), `6e30ee8` (nombre sin sufijo),
-  `24bd325` (botón Salir), `2da9d54` (diálogos en toda la planilla)
+  `24bd325` (botón Salir), `2da9d54` (diálogos en toda la planilla),
+  `c937dae` (fix cierre de sesión)
+- **Circuito de jefes verificado en producción:** se creó un usuario, entró con su nombre y
+  contraseña, agregó un proceso y guardó en su departamento. Confirma que las reglas de
+  Firestore dejan escribir a cada jefe SOLO en su departamento.
 - Reglas de Firestore publicadas el 22 de julio de 2026.
 - Verificado en navegador con una copia sin Firebase (sin tocar los datos reales): bloqueo
   del paso sin certificar, certificación, anulación al editar, estado vacío, carga a la
@@ -281,35 +285,40 @@ pide confirmación mostrando número, unidad, código y nombre.
   Firebase. Abrirlo como `file://` no sirve — el panel de vista previa se queda pegado en
   la primera dirección y no recarga.
 
-### ⚠ BUG ABIERTO — arreglar primero al retomar
+### ✔ BUG DEL CIERRE DE SESIÓN — resuelto (1.5.4)
 
-**Al cerrar sesión, la pantalla se bloquea y NO saca del programa.** Reportado por el usuario
-al final de la sesión (versión 1.5.3). Se confirma "Cerrar sesión" en el diálogo, pero en vez
-de volver al login la pantalla queda trabada, sin sacar de la aplicación.
+Estaba: al cerrar sesión la pantalla se bloqueaba y no sacaba del programa (reportado en 1.5.3).
 
-Pista para diagnosticar: `onAuthStateChanged` recarga con `location.reload()` solo si
-`_appArrancada`; y el diálogo propio (`catConfirmar`) devuelve una promesa — revisar que
-`cerrarSesion()` esté llamando de verdad a `_auth.signOut()` tras el `.then(ok)`, y que el
-listener no quede esperando algo. Reproducir con Firebase real (el bug puede depender de la
-sesión viva, que la copia de prueba sin Firebase no tiene). NO probado aún.
+**Causa:** en la reescritura del módulo de catálogo (1.5.0) los dos listeners de Firestore
+pasaron a llamarse `_catUnsubCfg` y `_catUnsubDep`, pero el manejador de cierre de sesión
+seguía llamando al nombre viejo `_catUnsub`, que ya no existía. Al no estar declarada, lanzaba
+`ReferenceError` justo antes de `location.reload()` — la línea que devuelve al login. Por eso
+la sesión de Firebase sí se cerraba por dentro, pero la pantalla nunca se refrescaba.
+
+**Corrección:** cerrar los dos listeners correctos. Verificado en navegador con Firebase
+simulado y sesión viva (la condición real donde ocurría; la copia sin Firebase no lo
+reproducía): el logout ahora recarga hasta el login. Commit `c937dae`.
+
+Lección de método: al renombrar variables globales, buscar TODOS los usos —este quedó en el
+manejador de `onAuthStateChanged`, lejos del módulo que se estaba reescribiendo.
 
 ### PENDIENTES (además de los de la Sesión 1)
 
-5. **Primer guardado del administrador.** La regla de los departamentos consulta
-   `procesos_criticos/catalogo`. Mientras ese documento no exista, los jefes reciben
-   "Sin permiso para guardar". Hay que entrar y usar "Asignar correos a un depto." una vez
-   para crearlo, ANTES de avisar a los jefes.
-6. **Cargar los correos de cada jefe.** Cada uno debe estar en dos lugares: en la lista
-   `autorizadoPC()` de las reglas (para abrir la app) y asignado a su departamento desde la
-   pantalla (para escribir en él).
-7. **Repartir los procesos actuales.** Usar "Importar desde la planilla" una sola vez para
-   que los procesos que hoy están en la planilla queden distribuidos por departamento.
-   Quedó pendiente rehacerlo con la versión 1.4.1 o superior: la primera importación se hizo
-   con la versión que traía las filas incompletas, así que el catálogo todavía tiene líneas
-   en blanco y marca 36 procesos donde hay muchos menos reales.
-8. **La mayoría de los departamentos no tiene procesos escritos.** En la planilla solo I, II
-   y V tienen nombres; III, IV, VI y VIII tienen la unidad marcada en filas vacías. No es una
-   falla: es justamente lo que la pantalla nueva viene a resolver, que cada jefe cargue los
-   suyos.
-9. **Diálogos de la planilla general (pantalla 2).** Siguen usando los cuadros del navegador.
-   Se dejaron así a propósito, es otro módulo; queda ofrecido igualarlos en una pasada aparte.
+Ya resueltos y verificados en producción (se dejan tachados como registro):
+- ~~5. Primer guardado del administrador (crear el documento `catalogo`).~~ Hecho: el circuito
+  de jefes ya funciona, así que el documento existe y las reglas lo leen.
+- ~~6. Cargar los usuarios de cada jefe.~~ El sistema de usuarios (1.5.0) reemplazó la lista
+  escrita a mano en las reglas: ahora se crean desde la pantalla con "+ Crear usuario" y las
+  reglas leen el mapa `usuarios` del catálogo. Ya se creó y probó al menos uno.
+- ~~9. Diálogos de la planilla general.~~ Hecho en 1.5.3: todo el sistema usa el diálogo propio.
+
+Abiertos:
+7. **Repartir los procesos actuales.** Confirmar que "Importar desde la planilla" se rehízo
+   con la versión 1.4.1+ (sin las líneas en blanco de la primera importación). Revisar que el
+   total del tablero cuadre con los procesos reales, no 36.
+8. **La mayoría de los departamentos no tiene procesos escritos.** En la planilla original solo
+   I, II y V tenían nombres; III, IV, VI y VIII tenían la unidad marcada en filas vacías. Los
+   cargan sus jefes desde la pantalla; ir siguiendo el avance en el tablero de certificación.
+10. **Crear las cuentas de los jefes restantes** y entregarles usuario y contraseña (anotar la
+    clave al crearla: después nadie puede verla). Recordar el flujo de clave olvidada: borrar
+    la cuenta en Authentication y recrearla desde la pantalla (no se pierden los procesos).
