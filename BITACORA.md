@@ -268,12 +268,12 @@ pide confirmación mostrando número, unidad, código y nombre.
 
 ### Estado al cierre de la sesión
 
-- **Versión publicada:** 1.5.4
+- **Versión publicada:** 1.5.5
 - **Commits:** `7ffb7a2` (pantalla + certificación), `46229e2` (filas incompletas),
   `9753eae` (versión a la vista), `346a481` (diálogos del módulo),
   `dc09edd` (usuarios + nombre de usuario), `6e30ee8` (nombre sin sufijo),
   `24bd325` (botón Salir), `2da9d54` (diálogos en toda la planilla),
-  `c937dae` (fix cierre de sesión)
+  `c937dae` (fix cierre de sesión), `a19f012` (fix edición trabada del jefe)
 - **Circuito de jefes verificado en producción:** se creó un usuario, entró con su nombre y
   contraseña, agregó un proceso y guardó en su departamento. Confirma que las reglas de
   Firestore dejan escribir a cada jefe SOLO en su departamento.
@@ -301,6 +301,32 @@ reproducía): el logout ahora recarga hasta el login. Commit `c937dae`.
 
 Lección de método: al renombrar variables globales, buscar TODOS los usos —este quedó en el
 manejador de `onAuthStateChanged`, lejos del módulo que se estaba reescribiendo.
+
+### ✔ BUG DE EDICIÓN TRABADA — resuelto (1.5.5)
+
+Estaba: un jefe editaba un proceso, presionaba el visto (✓) para guardar y no pasaba nada;
+la fila quedaba trabada y aparecía "🔒 Sin permiso para leer el catálogo".
+
+**Causa:** al editar una fila, las actualizaciones EN VIVO del catálogo pisaban lo que se
+estaba editando. Si el catálogo del servidor llegaba con la lista de usuarios vacía (lectura
+aún sin sincronizar), el jefe perdía su departamento a mitad de edición; al confirmar, el
+sistema creía que ya no era jefe del depto y bloqueaba con "No tiene permiso para editar".
+
+**Corrección (reproducida y verificada en navegador):**
+- Los dos listeners (config y departamentos) ya no aplican cambios mientras hay una fila en
+  edición.
+- `catMiDepto()` recuerda el último departamento propio confirmado: si el catálogo llega
+  vacío, conserva la identidad; solo la pierde si el catálogo trae usuarios y el jefe
+  genuinamente ya no está.
+
+Confirmado por el usuario en producción: la edición guarda ("☁ Depto. I guardado"), lleva a
+re-certificar (correcto, la edición anula la certificación por hash), el cierre de sesión
+funciona y el candado del catálogo desapareció. Commit `a19f012`.
+
+Nota operativa: el administrador es SIEMPRE el correo `marcoaraya1973@gmail.com` (no existe un
+usuario "admin"; las reglas y `CAT_ADMINS` se amarran a ese Gmail). Para entrar como admin:
+cerrar sesión y entrar con ese correo. Su clave sí se recupera por "Olvidé mi contraseña"
+porque es un buzón real, a diferencia de las cuentas @proc.cl de los jefes.
 
 ### PENDIENTES (además de los de la Sesión 1)
 
