@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.6.1';
+var APP_VER = '1.6.2';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2743,23 +2743,42 @@ async function catCrearUsuario() {
   if (catalogo.usuarios[correo]) { await catAviso('El usuario ' + usuario + ' ya está registrado.'); return; }
 
   catEstado('☁ Creando la cuenta…', '');
-  var appAlta;
+  var appAlta, reutilizada = false;
   try {
     appAlta = firebase.apps.filter(function (a) { return a.name === 'alta'; })[0] ||
               firebase.initializeApp(FB_CFG, 'alta');
+  } catch (e) { appAlta = null; }
+  try {
     await appAlta.auth().createUserWithEmailAndPassword(correo, datos.clave);
     await appAlta.auth().signOut();   // la sesión del administrador queda intacta
   } catch (err) {
-    catEstado('', '');
-    var m = { 'auth/email-already-in-use': 'Ya existe una cuenta con ese nombre de usuario. Si es de alguien ' +
-                'que ya no está, bórrela primero en la consola de Firebase.',
-              'auth/weak-password': 'La contraseña es demasiado débil.',
-              'auth/invalid-email': 'El nombre de usuario tiene caracteres que no se admiten.',
-              'auth/operation-not-allowed': 'Firebase tiene desactivada la creación de cuentas con ' +
-                'correo y contraseña. Actívela en Authentication → Sign-in method.' };
-    await catAviso(m[err && err.code] || ('No se pudo crear la cuenta: ' + ((err && err.message) || 'error desconocido')),
-      { titulo: 'No se creó el usuario' });
-    return;
+    // La cuenta ya existe en Firebase Auth. Ocurre cuando se "quitó" del catálogo pero la
+    // cuenta de acceso sigue viva (borrarla del todo requiere la consola de Firebase). Si la
+    // contraseña escrita ES la de esa cuenta, la reutilizamos y la volvemos a agregar al
+    // catálogo sin crear nada nuevo. Si no coincide, no podemos cambiarla desde aquí.
+    if (err && err.code === 'auth/email-already-in-use') {
+      try {
+        await appAlta.auth().signInWithEmailAndPassword(correo, datos.clave);
+        await appAlta.auth().signOut();
+        reutilizada = true;
+      } catch (e2) {
+        catEstado('', '');
+        await catAviso('Ya existe una cuenta con ese nombre de usuario y la contraseña que escribió ' +
+          'no es la de esa cuenta. Escriba la contraseña original para reutilizarla, o bórrela en la ' +
+          'consola de Firebase (Authentication) y vuélvala a crear.',
+          { titulo: 'La cuenta ya existe', detalle: 'Cuenta interna: ' + correo });
+        return;
+      }
+    } else {
+      catEstado('', '');
+      var m = { 'auth/weak-password': 'La contraseña es demasiado débil.',
+                'auth/invalid-email': 'El nombre de usuario tiene caracteres que no se admiten.',
+                'auth/operation-not-allowed': 'Firebase tiene desactivada la creación de cuentas con ' +
+                  'correo y contraseña. Actívela en Authentication → Sign-in method.' };
+      await catAviso(m[err && err.code] || ('No se pudo crear la cuenta: ' + ((err && err.message) || 'error desconocido')),
+        { titulo: 'No se creó el usuario' });
+      return;
+    }
   }
 
   var esAdminNuevo = datos.depto === '__ADMIN__';
@@ -2768,9 +2787,12 @@ async function catCrearUsuario() {
     : { depto: datos.depto, nombre: correoAUsuario(usuario), creado: Date.now(), por: catEmail() };
   catRender();
   catGuardarConfig();
-  await catAviso('El usuario ya puede entrar con su nombre y la contraseña que usted definió. ' +
-    'Anótela y entréguesela: nadie más puede verla después.',
-    { titulo: 'Usuario creado',
+  await catAviso(reutilizada
+      ? 'Ya existía una cuenta con ese nombre y la misma contraseña, así que se reutilizó y quedó ' +
+        'de nuevo habilitada. El usuario entra con su nombre y esa contraseña.'
+      : 'El usuario ya puede entrar con su nombre y la contraseña que usted definió. ' +
+        'Anótela y entréguesela: nadie más puede verla después.',
+    { titulo: reutilizada ? 'Cuenta reutilizada' : 'Usuario creado',
       detalle: 'Usuario: ' + usuario + '\n' +
                (esAdminNuevo ? 'Rol: Administrador (todos los departamentos)' : 'Departamento: ' + datos.depto) +
                '\nCuenta interna: ' + correo });
