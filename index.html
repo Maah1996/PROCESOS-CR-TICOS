@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.5';
+var APP_VER = '1.6.0';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2154,7 +2154,10 @@ window.addEventListener('resize', function () {
 // La lista de departamentos y qué correo edita cada uno viven en procesos_criticos/catalogo
 // (solo el administrador lo escribe).
 const CAT_KEY = 'procesos_criticos_catalogo';
-const CAT_ADMINS = ['marcoaraya1973@gmail.com'];
+// Administradores. Se reconocen por su cuenta interna (en minúscula). El correo real de
+// marcoaraya y el usuario "admin" (admin@proc.cl) mandan sobre todo, sin importar el depto.
+// La contraseña NO vive aquí: se define al crear la cuenta y queda solo en Firebase.
+const CAT_ADMINS = ['marcoaraya1973@gmail.com', 'admin@proc.cl'];
 const CAT_COL_DEPTOS = 'procesos_deptos';
 const CAT_DEPTOS_INICIAL = [
   { id: 'I',       nombre: 'Personal' },
