@@ -268,12 +268,13 @@ pide confirmación mostrando número, unidad, código y nombre.
 
 ### Estado al cierre de la sesión
 
-- **Versión publicada:** 1.5.5
+- **Versión publicada:** 1.6.1
 - **Commits:** `7ffb7a2` (pantalla + certificación), `46229e2` (filas incompletas),
   `9753eae` (versión a la vista), `346a481` (diálogos del módulo),
   `dc09edd` (usuarios + nombre de usuario), `6e30ee8` (nombre sin sufijo),
   `24bd325` (botón Salir), `2da9d54` (diálogos en toda la planilla),
-  `c937dae` (fix cierre de sesión), `a19f012` (fix edición trabada del jefe)
+  `c937dae` (fix cierre de sesión), `a19f012` (fix edición trabada del jefe),
+  `2615fbc` (usuario admin), `52d5831` (rol Administrador desde la pantalla)
 - **Circuito de jefes verificado en producción:** se creó un usuario, entró con su nombre y
   contraseña, agregó un proceso y guardó en su departamento. Confirma que las reglas de
   Firestore dejan escribir a cada jefe SOLO en su departamento.
@@ -327,6 +328,33 @@ Nota operativa: el administrador es SIEMPRE el correo `marcoaraya1973@gmail.com`
 usuario "admin"; las reglas y `CAT_ADMINS` se amarran a ese Gmail). Para entrar como admin:
 cerrar sesión y entrar con ese correo. Su clave sí se recupera por "Olvidé mi contraseña"
 porque es un buzón real, a diferencia de las cuentas @proc.cl de los jefes.
+
+### Acceso de administrador (1.6.0 y 1.6.1)
+
+**Usuario "admin" (1.6.0).** Se agregó `admin@proc.cl` a `CAT_ADMINS` para tener un acceso de
+administrador por nombre de usuario ("admin"), además del correo real. La contraseña NO va en
+el código (el repositorio es público): se define al crear la cuenta y queda solo en Firebase.
+Se agregó `admin@proc.cl` a `isAdmin()` en las reglas.
+
+**El administrador es SIEMPRE:** el correo `marcoaraya1973@gmail.com` y el usuario `admin`
+(admin@proc.cl). Son el acceso a prueba de fallos: no dependen del catálogo, así que el admin
+nunca se puede quedar afuera. La cuenta `admin` se crea entrando con el Gmail y usando
+"+ Crear usuario". La clave de `admin` no se recupera sola (no tiene buzón); si se olvida, se
+entra con el Gmail y se recrea.
+
+**Rol "Administrador" desde la pantalla (1.6.1).** El desplegable de rol (al crear o cambiar
+un usuario) incluye "Administrador — todos los departamentos". Un usuario marcado así se
+guarda con `{admin:true}` (sin depto) y tiene todos los atributos. `catEsAdmin()` reconoce a
+los dos admin fijos del código Y a los marcados en el catálogo. `catNormalizar` conserva el
+flag. La tabla de usuarios los muestra como ADMIN.
+
+Para que el permiso sea real también en el SERVIDOR, `isAdmin()` en las reglas se amplió: es
+admin quien tenga uno de los dos correos fijos O quien esté marcado `admin:true` en el
+catálogo (`usuariosPC().get(correo, {}).get('admin', false)`). Publicado el 23 de julio de 2026.
+
+Nota de seguridad: un admin marcado desde la pantalla es tan poderoso como el admin fijo
+(puede crear y quitar usuarios, incluso otros admin). Solo otro admin puede marcarlo, porque
+un jefe no puede escribir el catálogo. Darlo solo a quien de verdad corresponda.
 
 ### PENDIENTES (además de los de la Sesión 1)
 
