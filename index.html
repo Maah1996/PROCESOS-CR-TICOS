@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.4';
+var APP_VER = '1.5.5';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2274,17 +2274,23 @@ function catEsAdmin() {
   if (!_nubeOn) return true;   // sin Firebase la página trabaja local: nadie a quién limitar
   return CAT_ADMINS.indexOf(catEmail()) >= 0;
 }
+var _miDeptoRecordado = null;   // último depto propio confirmado en esta sesión
 function catMiDepto() {
   var em = catEmail();
   if (!em) return null;
   var u = (catalogo.usuarios || {})[em];
-  if (u && u.depto) return u.depto;
+  if (u && u.depto) { _miDeptoRecordado = u.depto; return u.depto; }
   // Compatibilidad con la versión anterior, que guardaba depto → [correos].
   var r = null;
   Object.keys(catalogo.asignaciones || {}).forEach(function (d) {
     if ((catalogo.asignaciones[d] || []).indexOf(em) >= 0) r = d;
   });
-  return r;
+  if (r) { _miDeptoRecordado = r; return r; }
+  // Si el catálogo llegó VACÍO (lectura denegada o sin sincronizar todavía), no borro la
+  // identidad: uso el último depto conocido. Si el catálogo trae usuarios pero yo no estoy,
+  // entonces sí fui removido de verdad → null.
+  if (!Object.keys(catalogo.usuarios || {}).length) return _miDeptoRecordado;
+  return null;
 }
 function catPuedeEditar(deptoId) {
   if (catEsAdmin()) return true;
@@ -2909,6 +2915,7 @@ function catArrancar() {
       if (!snap.exists) return;
       var d = snap.data() || {};
       if (d.cliente === MI_CLIENTE) return;
+      if (_catEditando !== null) return;   // no pisar NADA mientras se edita una fila
       try {
         var obj = d.data ? JSON.parse(d.data) : {};
         if (Array.isArray(obj.deptos) && obj.deptos.length) catalogo.deptos = obj.deptos;
@@ -2916,12 +2923,13 @@ function catArrancar() {
       catalogo.usuarios = d.usuarios || {};
       catalogo.asignaciones = d.asignaciones || {};
       catGuardarLocal();
-      if (_catEditando === null) catRender();
+      catRender();
     }, function () { catEstado('💾 Solo local (sin nube)', 'err'); });
   }
 
   if (!_catUnsubDep) {
     _catUnsubDep = _catCol.onSnapshot(function (snap) {
+      if (_catEditando !== null) return;   // no reemplazar la lista mientras se edita una fila
       var acumulado = [], certif = {};
       snap.forEach(function (doc) {
         var d = doc.data() || {}, lista = [];
