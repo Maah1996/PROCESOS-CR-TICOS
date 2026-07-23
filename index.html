@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.5.3';
+var APP_VER = '1.5.4';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -3117,7 +3117,8 @@ if (_nubeOn) {
       // Cerró sesión teniendo la planilla abierta: se borra el respaldo local y se recarga,
       // para no dejar datos institucionales a la vista del siguiente que use este equipo.
       if (_unsub) { _unsub(); _unsub = null; }
-      if (_catUnsub) { _catUnsub(); _catUnsub = null; }
+      if (_catUnsubCfg) { _catUnsubCfg(); _catUnsubCfg = null; }
+      if (_catUnsubDep) { _catUnsubDep(); _catUnsubDep = null; }
       _nubeListo = false;
       try { localStorage.removeItem(AUTOSAVE_KEY); localStorage.removeItem(CAT_KEY); } catch (e) {}
       location.reload();
