@@ -9,7 +9,7 @@
    una vez agregándola. Al subir un cambio, sube el número de APP_VER y todos reciben la
    versión nueva. Con la hora (Date.now) cada visita era una URL distinta: la página nunca
    se cacheaba, se redescargaba entera siempre y se rompía el botón "atrás". */
-var APP_VER = '1.6.0';
+var APP_VER = '1.6.1';
 (function () {
   if (new URLSearchParams(location.search).get('v') === APP_VER) return;
   var u = new URL(location.href);
@@ -2275,7 +2275,10 @@ function catFormulario(mensaje, campos, o) {
 function catEmail() { return ((_auth && _auth.currentUser && _auth.currentUser.email) || '').toLowerCase(); }
 function catEsAdmin() {
   if (!_nubeOn) return true;   // sin Firebase la página trabaja local: nadie a quién limitar
-  return CAT_ADMINS.indexOf(catEmail()) >= 0;
+  var em = catEmail();
+  if (CAT_ADMINS.indexOf(em) >= 0) return true;         // administradores fijos del código
+  var u = (catalogo.usuarios || {})[em];
+  return !!(u && u.admin);                              // administradores marcados desde la pantalla
 }
 var _miDeptoRecordado = null;   // último depto propio confirmado en esta sesión
 function catMiDepto() {
@@ -2369,8 +2372,10 @@ function catNormalizar() {
   // Deja el nombre limpio aunque se haya tecleado con el sufijo ("DeptoI@proc.cl" → "DeptoI").
   Object.keys(catalogo.usuarios).forEach(function (em) {
     var u = catalogo.usuarios[em] || {};
-    catalogo.usuarios[em] = { depto: u.depto || '', nombre: correoAUsuario(u.nombre || em),
-                              creado: u.creado || 0, por: u.por || '' };
+    var lim = { nombre: correoAUsuario(u.nombre || em), creado: u.creado || 0, por: u.por || '' };
+    if (u.admin) lim.admin = true;              // administrador: manda sobre todo, sin depto
+    else lim.depto = u.depto || '';
+    catalogo.usuarios[em] = lim;
   });
   // Rescata lo que quedó guardado con el esquema anterior (depto → [correos]).
   Object.keys(catalogo.asignaciones).forEach(function (d) {
@@ -2700,9 +2705,9 @@ function catRenderUsuarios() {
       var u = catalogo.usuarios[em];
       // correoAUsuario también limpia los nombres que se guardaron con el sufijo escrito a mano.
       html += '<tr><td>' + escapeHtml(correoAUsuario(u.nombre || em)) + '</td>' +
-        '<td>' + escapeHtml(u.depto || '—') + '</td>' +
+        '<td>' + (u.admin ? '<strong style="color:#7030a0;">ADMIN</strong>' : escapeHtml(u.depto || '—')) + '</td>' +
         '<td style="color:#777;">' + escapeHtml(em) + '</td>' +
-        '<td class="u-acc"><button onclick="catCambiarDeptoUsuario(\'' + escapeHtml(em) + '\')">Depto.</button>' +
+        '<td class="u-acc"><button onclick="catCambiarDeptoUsuario(\'' + escapeHtml(em) + '\')">Rol</button>' +
         '<button onclick="catQuitarUsuario(\'' + escapeHtml(em) + '\')">Quitar</button></td></tr>';
     });
   }
@@ -2718,10 +2723,11 @@ async function catCrearUsuario() {
       { id: 'usuario', etiqueta: 'Nombre de usuario (sin “' + USUARIO_SUFIJO + '”: se agrega solo)',
         pista: 'DeptoI' },
       { id: 'clave', etiqueta: 'Contraseña (mínimo 6 caracteres)', tipo: 'password' },
-      { id: 'depto', etiqueta: 'Departamento que podrá editar', tipo: 'select', valor: _catSel,
-        opciones: catDeptosOrdenados().map(function (d) {
-          return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
-        }) }
+      { id: 'depto', etiqueta: 'Rol o departamento', tipo: 'select', valor: _catSel,
+        opciones: [{ valor: '__ADMIN__', texto: 'Administrador — todos los departamentos' }].concat(
+          catDeptosOrdenados().map(function (d) {
+            return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
+          })) }
     ],
     { titulo: 'Crear usuario', ok: 'Crear cuenta' });
   if (!datos) return;
@@ -2756,28 +2762,34 @@ async function catCrearUsuario() {
     return;
   }
 
-  catalogo.usuarios[correo] = { depto: datos.depto, nombre: correoAUsuario(usuario),
-                                creado: Date.now(), por: catEmail() };
+  var esAdminNuevo = datos.depto === '__ADMIN__';
+  catalogo.usuarios[correo] = esAdminNuevo
+    ? { admin: true, nombre: correoAUsuario(usuario), creado: Date.now(), por: catEmail() }
+    : { depto: datos.depto, nombre: correoAUsuario(usuario), creado: Date.now(), por: catEmail() };
   catRender();
   catGuardarConfig();
   await catAviso('El usuario ya puede entrar con su nombre y la contraseña que usted definió. ' +
     'Anótela y entréguesela: nadie más puede verla después.',
     { titulo: 'Usuario creado',
-      detalle: 'Usuario: ' + usuario + '\nDepartamento: ' + datos.depto + '\nCuenta interna: ' + correo });
+      detalle: 'Usuario: ' + usuario + '\n' +
+               (esAdminNuevo ? 'Rol: Administrador (todos los departamentos)' : 'Departamento: ' + datos.depto) +
+               '\nCuenta interna: ' + correo });
 }
 
 async function catCambiarDeptoUsuario(correo) {
   if (!catEsAdmin()) return;
   var u = catalogo.usuarios[correo];
   if (!u) return;
-  var datos = await catFormulario('Departamento que podrá editar ' + (u.nombre || correoAUsuario(correo)) + '.',
-    [{ id: 'depto', etiqueta: 'Departamento', tipo: 'select', valor: u.depto,
-       opciones: catDeptosOrdenados().map(function (d) {
-         return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
-       }) }],
-    { titulo: 'Cambiar departamento' });
+  var datos = await catFormulario('Rol o departamento de ' + (u.nombre || correoAUsuario(correo)) + '.',
+    [{ id: 'depto', etiqueta: 'Rol o departamento', tipo: 'select', valor: u.admin ? '__ADMIN__' : u.depto,
+       opciones: [{ valor: '__ADMIN__', texto: 'Administrador — todos los departamentos' }].concat(
+         catDeptosOrdenados().map(function (d) {
+           return { valor: d.id, texto: 'DEPTO ' + d.id + (d.nombre ? ' "' + d.nombre + '"' : '') };
+         })) }],
+    { titulo: 'Cambiar rol o departamento' });
   if (!datos) return;
-  u.depto = datos.depto;
+  if (datos.depto === '__ADMIN__') { u.admin = true; delete u.depto; }
+  else { delete u.admin; u.depto = datos.depto; }
   catRender();
   catGuardarConfig();
 }
