@@ -228,11 +228,51 @@ colores del sistema. Tres mejoras de fondo, no solo de aspecto:
 También se corrigió el mensaje de departamento vacío, que le decía "usted no tiene procesos"
 al administrador cuando miraba el departamento de otro.
 
+### Usuarios con nombre de usuario (1.5.0 a 1.5.3)
+
+**Acceso sin correo.** Firebase solo entiende correo y contraseña, así que "DeptoI" se
+convierte por dentro en `deptoi@proc.cl`. El usuario nunca ve ese correo: escribe su nombre
+y su clave. Quien tenga un correo real puede seguir usándolo — si el texto trae una arroba,
+se respeta tal cual.
+
+**Alta de usuarios desde la pantalla.** El administrador crea las cuentas eligiendo usuario,
+contraseña y departamento. La cuenta se crea en una **segunda conexión** a Firebase: sin eso,
+cada alta habría desconectado al administrador, porque crear un usuario deja la sesión
+abierta con ese usuario.
+
+**La autorización se mudó a Firestore.** Antes los correos estaban escritos dentro de las
+reglas, así que cada usuario nuevo obligaba a editarlas a mano. Ahora las reglas leen el mapa
+`usuarios` del documento `catalogo` y crear un usuario da acceso al instante. Las reglas se
+publicaron el 22 de julio de 2026 usando `.data.get('usuarios', {})`, con valor por omisión:
+con `.data.usuarios` a secas, si el campo faltaba la regla reventaba y denegaba todo.
+
+**"Quitar el acceso"** saca al usuario de la lista y el bloqueo es inmediato. La cuenta sigue
+existiendo en Firebase hasta que se borre en la consola, pero para revocar el acceso no hace
+falta tocarla.
+
+**Contraseñas.** Las cuentas de nombre de usuario NO pueden recuperar la clave por correo: no
+existe el buzón. Y cambiar la clave de otro exige el SDK de administrador, que corre en un
+servidor. El camino cuando alguien la olvida: borrar la cuenta en Authentication y volver a
+crearla desde la pantalla. **No se pierden sus procesos**, que viven en Firestore, no en la
+cuenta. Al crear una cuenta hay que anotar la contraseña: después nadie puede verla.
+
+**Botón "Salir" en la pantalla de departamentos (1.5.2).** Esa pantalla tapa la barra superior
+de la planilla, así que el botón quedaba oculto: un jefe que entrara y se quedara ahí —lo que
+van a hacer todos— no tenía forma de cerrar sesión. En un equipo compartido eso significa
+dejarla abierta al siguiente.
+
+**Todos los diálogos son propios (1.5.3).** Ya no queda ningún `alert`, `confirm` ni `prompt`
+del navegador en el archivo. Y el "− Eliminar" de la planilla borraba el proceso **de
+inmediato, sin preguntar**: un clic de más se llevaba la fila con todos sus puntajes. Ahora
+pide confirmación mostrando número, unidad, código y nombre.
+
 ### Estado al cierre de la sesión
 
-- **Versión publicada:** 1.4.3
+- **Versión publicada:** 1.5.3
 - **Commits:** `7ffb7a2` (pantalla + certificación), `46229e2` (filas incompletas),
-  `9753eae` (versión a la vista), `346a481` (diálogos propios)
+  `9753eae` (versión a la vista), `346a481` (diálogos del módulo),
+  `dc09edd` (usuarios + nombre de usuario), `6e30ee8` (nombre sin sufijo),
+  `24bd325` (botón Salir), `2da9d54` (diálogos en toda la planilla)
 - Reglas de Firestore publicadas el 22 de julio de 2026.
 - Verificado en navegador con una copia sin Firebase (sin tocar los datos reales): bloqueo
   del paso sin certificar, certificación, anulación al editar, estado vacío, carga a la
@@ -240,6 +280,18 @@ al administrador cuando miraba el departamento de otro.
 - Nota de método: el archivo se probó servido por `http://127.0.0.1` con una copia sin
   Firebase. Abrirlo como `file://` no sirve — el panel de vista previa se queda pegado en
   la primera dirección y no recarga.
+
+### ⚠ BUG ABIERTO — arreglar primero al retomar
+
+**Al cerrar sesión, la pantalla se bloquea y NO saca del programa.** Reportado por el usuario
+al final de la sesión (versión 1.5.3). Se confirma "Cerrar sesión" en el diálogo, pero en vez
+de volver al login la pantalla queda trabada, sin sacar de la aplicación.
+
+Pista para diagnosticar: `onAuthStateChanged` recarga con `location.reload()` solo si
+`_appArrancada`; y el diálogo propio (`catConfirmar`) devuelve una promesa — revisar que
+`cerrarSesion()` esté llamando de verdad a `_auth.signOut()` tras el `.then(ok)`, y que el
+listener no quede esperando algo. Reproducir con Firebase real (el bug puede depender de la
+sesión viva, que la copia de prueba sin Firebase no tiene). NO probado aún.
 
 ### PENDIENTES (además de los de la Sesión 1)
 
